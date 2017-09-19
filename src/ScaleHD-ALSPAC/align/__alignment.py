@@ -227,7 +227,7 @@ class SeqAlign:
 		##
 		##User feedback on alignment progress.. maybe improve later
 		##if you're reading this and want better feedback, you probably know 'htop' exists
-		log.info('{}{}{}{}'.format(clr.bold,'shd__ ',clr.end,feedback_string))
+		log.info('{}{}{}{}'.format(clr.bold,'shda__ ',clr.end,feedback_string))
 		sample_string = '{}_{}_{}'.format(self.sample_root, io_index, typical_flag)
 		alignment_outdir = os.path.join(self.target_output, sample_string)
 		if os.path.exists(alignment_outdir):
@@ -255,7 +255,7 @@ class SeqAlign:
 		unpaired_pairing_penalty    :: -U <INT>      :: penalty for unpaired read pair [17]
 		"""
 
-		read_group_header = '@RG\tID:{}\tSM:{}\tPL:{}\tLB:{}'.format('ScaleHD-ALN',self.sequencepair_object.get_label(),
+		read_group_header = '@RG\tID:{}\tSM:{}\tPL:{}\tLB:{}'.format('ScaleHD-ALSPAC-ALN',self.sequencepair_object.get_label(),
 																	 'ILLUMINA',self.instance_params.config_dict['JobName'])
 		bwa_process = subprocess.Popen(['bwa', 'mem', '-t', str(THREADS), '-k', min_seed_length,
 										'-w', band_width, '-r', seed_length_extension,
@@ -332,12 +332,15 @@ class ReferenceIndex:
 
 	def index_reference(self):
 
+		##Todo obfuscate reference index
+		##(utilise sklearn preprocessing labelencoder()?
+
 		##
 		## Be paranoid, check existence/validity of reference.. again
 		reference_root = self.reference.split('/')[-1].split('.')[0]
 		if os.path.isfile(self.reference):
 			if not (self.reference.endswith('.fa') or self.reference.endswith('.fas') or self.reference.endswith('.fasta')):
-				log.critical('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'Specified reference does not exist/is not fasta.'))
+				log.critical('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Specified reference does not exist/is not fasta.'))
 		##
 		## Path to store indexes for this reference
 		reference_index = os.path.join(self.target_output, reference_root)

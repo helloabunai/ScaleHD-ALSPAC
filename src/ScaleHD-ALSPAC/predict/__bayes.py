@@ -59,8 +59,8 @@ class BayesianLikelihood:
         ## Check we have an internet connection (for R package install/CRAN)
         self.is_connected = True
         if not self.check_connection():
-            log.info('{}{}{}{}'.format(clr.yellow, 'shd__ ', clr.end, 'No internet connection!!'))
-            log.info('{}{}{}{}'.format(clr.yellow, 'shd__ ', clr.end, 'Hopefully you are not missing any R packages.'))
+            log.info('{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'No internet connection!!'))
+            log.info('{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'Hopefully you are not missing any R packages.'))
 
         ##
         ## Installed required R Package (if missing)

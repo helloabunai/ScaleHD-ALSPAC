@@ -153,7 +153,7 @@ class ScanAtypical:
 			if target[1] < 20:
 				fail_score += 1
 		if fail_score != 0:
-			log.warning('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Alignment contains too few reads. Cannot guarantee precision.'))
+			log.warning('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Alignment contains too few reads. Cannot guarantee precision.'))
 			self.alignment_warning = True
 			self.sequencepair_object.set_alignmentwarning(self.alignment_warning)
 

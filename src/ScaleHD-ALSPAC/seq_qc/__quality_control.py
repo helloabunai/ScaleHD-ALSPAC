@@ -28,7 +28,7 @@ class SeqQC:
 		self.trimming_errors = False
 		self.trimming_report = []
 		if stage.lower()=='validate': self.verify_input()
-		if stage.lower()=='trim': self.execute_trimming(); self.execute_fastqc()
+		if stage.lower()=='trim': self.execute_trimming()
 
 	def verify_input(self, raise_exception=True):
 
@@ -37,7 +37,7 @@ class SeqQC:
 				return True
 
 		if raise_exception:
-			log.error('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'I/O: Invalid file format detected in input. Check input data.'))
+			log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'I/O: Invalid file format detected in input. Check input data.'))
 		return False
 
 	def execute_trimming(self):
@@ -130,18 +130,8 @@ class SeqQC:
 					self.trimming_report.append(trim_report)
 
 		if self.trimming_errors == 'True':
-			log.error('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'Trimming errors occurred. Check logging report!'))
+			log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Trimming errors occurred. Check logging report!'))
 			sys.exit(2)
-
-	def execute_fastqc(self):
-
-		##
-		## For the files in the current file pair, make FastQC output folder and run FastQC
-		for fqfile in self.input_filepair[0:1]:
-			fastqc_outdir = os.path.join(self.target_output, 'FastQC')
-			mkdir_p(fastqc_outdir)
-			fastqc_process = subprocess.Popen(['fastqc','--quiet','--extract','-t',THREADS,'-o',fastqc_outdir,fqfile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			fastqc_process.wait()
 
 	def get_trimreport(self):
 		return self.trimming_report

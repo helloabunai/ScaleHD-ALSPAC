@@ -151,51 +151,51 @@ class ConfigReader(object):
 
 		data_directory = self.config_dict['@data_dir']
 		if not os.path.exists(data_directory):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified data directory could not be found.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified data directory could not be found.'))
 			trigger = True
 		for fqfile in glob.glob(os.path.join(data_directory, '*')):
 			if not (fqfile.endswith('.fq') or fqfile.endswith('.fastq') or fqfile.endswith('.fq.gz') or fqfile.endswith('.fastq.gz')):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Non FastQ/GZ data detected in specified input directory.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Non FastQ/GZ data detected in specified input directory.'))
 				trigger = True
 		forward_reference = self.config_dict['@forward_reference']
 		if not os.path.isfile(forward_reference):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified forward reference file could not be found.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified forward reference file could not be found.'))
 			trigger = True
 		if not (forward_reference.endswith('.fa') or forward_reference.endswith('.fas') or forward_reference.endswith('.fasta')):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified forward reference file is not a fa/fas file.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified forward reference file is not a fa/fas file.'))
 			trigger = True
 		reverse_reference = self.config_dict['@reverse_reference']
 		if not os.path.isfile(reverse_reference):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified reverse reference file could not be found.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified reverse reference file could not be found.'))
 			trigger = True
 		if not (reverse_reference.endswith('fa') or reverse_reference.endswith('.fas') or reverse_reference.endswith('.fasta')):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified reverse reference file is not a fa/fas file.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified reverse reference file is not a fa/fas file.'))
 			trigger = True
 		if forward_reference.split('/')[-1] == reverse_reference.split('/')[-1]:
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: FW and RV references have identical filenames. Will create indexing issue.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: FW and RV references have identical filenames. Will create indexing issue.'))
 			trigger = True
 
 		##
 		## Instance flag settings
 		sequence_qc_flag = self.config_dict['instance_flags']['@quality_control']
 		if not (sequence_qc_flag == 'True' or sequence_qc_flag == 'False'):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Sequence Quality control flag is not set to True/False.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Sequence Quality control flag is not set to True/False.'))
 			trigger = True
 		alignment_flag = self.config_dict['instance_flags']['@sequence_alignment']
 		if not (alignment_flag == 'True' or alignment_flag == 'False'):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Sequence Alignment flag is not set to True/False.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Sequence Alignment flag is not set to True/False.'))
 			trigger = True
 		atypical_flag = self.config_dict['instance_flags']['@atypical_realignment']
 		if not (atypical_flag == 'True' or atypical_flag == 'False'):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Atypical Realignment flag is not True/False.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Atypical Realignment flag is not True/False.'))
 			trigger = True
 		genotype_flag = self.config_dict['instance_flags']['@genotype_prediction']
 		if not (genotype_flag == 'True' or genotype_flag == 'False'):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Genotype Prediction control flag is not True/False.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Genotype Prediction control flag is not True/False.'))
 			trigger = True
 		snpcall_flag = self.config_dict['instance_flags']['@snp_calling']
 		if not (snpcall_flag == 'True' or snpcall_flag == 'False'):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: SNP Calling flag is not True/False.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: SNP Calling flag is not True/False.'))
 			trigger = True
 
 		##
@@ -203,37 +203,37 @@ class ConfigReader(object):
 		if sequence_qc_flag == 'True':
 			trimming_type = self.config_dict['trim_flags']['@trim_type']
 			if not (trimming_type == 'Quality' or trimming_type	== 'Adapter' or trimming_type == 'Both'):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__  ', Colour.end, 'XML Config: Trimming type is not Quality/Adapter/Both.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__  ', Colour.end, 'XML Config: Trimming type is not Quality/Adapter/Both.'))
 				trigger = True
 			quality_threshold = self.config_dict['trim_flags']['@quality_threshold']
 			if not quality_threshold.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified quality threshold integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified quality threshold integer is invalid.'))
 				trigger = True
 			elif not int(quality_threshold) in range(0,39):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified quality threshold integer out of range (0-38).'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified quality threshold integer out of range (0-38).'))
 				trigger = True
 			trim_adapters = ['-a','-g','-a$','-g^','-b']
 			adapter_flag = self.config_dict['trim_flags']['@adapter_flag']
 			if not (adapter_flag in trim_adapters):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified trimming adapter not valid selection.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified trimming adapter not valid selection.'))
 				trigger = True
 			trim_adapter_base = ['A','G','C','T']
 			forward_adapter = self.config_dict['trim_flags']['@forward_adapter']
 			for charbase in forward_adapter:
 				if charbase not in trim_adapter_base:
-					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Invalid character detected in FW adapter sequence.'))
+					log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Invalid character detected in FW adapter sequence.'))
 					trigger = True
 			reverse_adapter = self.config_dict['trim_flags']['@reverse_adapter']
 			for charbase in reverse_adapter:
 				if charbase not in trim_adapter_base:
-					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Invalid character detected in RV adapter sequence.'))
+					log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Invalid character detected in RV adapter sequence.'))
 					trigger = True
 			error_tolerance = self.config_dict['trim_flags']['@error_tolerance']
 			if not isinstance(float(error_tolerance), float):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified error tolerance is not a valid float.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified error tolerance is not a valid float.'))
 				trigger = True
 			if not float(error_tolerance) in np.arange(0,1.1,0.01):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified error tolerance is not 0.0 < x < 1.0.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified error tolerance is not 0.0 < x < 1.0.'))
 				trigger = True
 
 		##
@@ -241,82 +241,82 @@ class ConfigReader(object):
 		if alignment_flag == 'True':
 			min_seed_length = self.config_dict['alignment_flags']['@min_seed_length']
 			if not min_seed_length.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified min_seed_length integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified min_seed_length integer is invalid.'))
 				trigger=True
 
 			band_width = self.config_dict['alignment_flags']['@band_width']
 			if not band_width.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified band_width integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified band_width integer is invalid.'))
 				trigger=True
 
 			seed_length_extension = self.config_dict['alignment_flags']['@seed_length_extension']
 			if not isinstance(float(seed_length_extension), float):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified seed_length_extension float is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified seed_length_extension float is invalid.'))
 				trigger=True
 
 			skip_seed_with_occurrence = self.config_dict['alignment_flags']['@skip_seed_with_occurrence']
 			if not skip_seed_with_occurrence.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified skip_seed_with_occurrence integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified skip_seed_with_occurrence integer is invalid.'))
 				trigger=True
 
 			chain_drop = self.config_dict['alignment_flags']['@chain_drop']
 			if not isinstance(float(chain_drop), float):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified chain_drop float is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified chain_drop float is invalid.'))
 				trigger=True
 
 			seeded_chain_drop = self.config_dict['alignment_flags']['@seeded_chain_drop']
 			if not seeded_chain_drop.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified seeded_chain_drop integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified seeded_chain_drop integer is invalid.'))
 				trigger=True
 
 			seq_match_score = self.config_dict['alignment_flags']['@seq_match_score']
 			if not seq_match_score.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified seq_match_score integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified seq_match_score integer is invalid.'))
 				trigger=True
 
 			mismatch_penalty = self.config_dict['alignment_flags']['@mismatch_penalty']
 			if not mismatch_penalty.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified mismatch_penalty integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified mismatch_penalty integer is invalid.'))
 				trigger=True
 
 			indel_penalty_raw = self.config_dict['alignment_flags']['@indel_penalty']
 			indel_penalty = indel_penalty_raw.split(',')
 			for individual_indelpen in indel_penalty:
 				if not individual_indelpen.isdigit():
-					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified indel_penalty integer(s) is(are) invalid.'))
+					log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified indel_penalty integer(s) is(are) invalid.'))
 					trigger=True
 
 			gap_extend_penalty_raw = self.config_dict['alignment_flags']['@gap_extend_penalty']
 			gap_extend_penalty = gap_extend_penalty_raw.split(',')
 			for individual_gaextend in gap_extend_penalty:
 				if not individual_gaextend.isdigit():
-					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified gap_extend_penalty integer(s) is(are) invalid.'))
+					log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified gap_extend_penalty integer(s) is(are) invalid.'))
 					trigger=True
 
 			prime_clipping_penalty_raw = self.config_dict['alignment_flags']['@prime_clipping_penalty']
 			prime_clipping_penalty = prime_clipping_penalty_raw.split(',')
 			for individual_prclip in prime_clipping_penalty:
 				if not individual_prclip.isdigit():
-					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified prime_clipping_penalty integer(s) is(are) invalid.'))
+					log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified prime_clipping_penalty integer(s) is(are) invalid.'))
 					trigger=True
 
 			unpaired_pairing_penalty = self.config_dict['alignment_flags']['@unpaired_pairing_penalty']
 			if not unpaired_pairing_penalty.isdigit():
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified unpaired_pairing_penalty integer is invalid.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Specified unpaired_pairing_penalty integer is invalid.'))
 				trigger=True
 		##
 		## Genotype prediction flag settings
 		if genotype_flag == 'True':
 			plot_graphs = self.config_dict['prediction_flags']['@plot_graphs']
 			if not (plot_graphs == 'True' or plot_graphs == 'False'):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Plot graphs flag is not True/False.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Plot graphs flag is not True/False.'))
 				trigger = True
 
 		if trigger:
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Failure, exiting.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'XML Config: Failure, exiting.'))
 			sys.exit(2)
 		else:
-			log.info('{}{}{}{}'.format(Colour.green, 'shd__ ', Colour.end, 'XML Config: Parsing parameters successful!'))
+			log.info('{}{}{}{}'.format(Colour.green, 'shda__ ', Colour.end, 'XML Config: Parsing parameters successful!'))
 
 
 class DataClump(dict):
@@ -409,19 +409,19 @@ def sanitise_inputs(parsed_arguments):
 	if parsed_arguments.jobname:
 		for character in parsed_arguments.jobname:
 			if character is ' ' or character is '/':
-				log.error('{}{}{}{}'.format(Colour.red,'shd__ ',Colour.end,'Specified Job Name has invalid characters: "', character, '"'))
+				log.error('{}{}{}{}'.format(Colour.red,'shda__ ',Colour.end,'Specified Job Name has invalid characters: "', character, '"'))
 				trigger = True
 
 	##
 	## Config mode check
 	if parsed_arguments.config:
 		if not filesystem_exists_check(parsed_arguments.config[0]):
-			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'Specified config file could not be found.'))
+			log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'Specified config file could not be found.'))
 			trigger = True
 
 		for xmlfile in parsed_arguments.config:
 			if not check_input_files('.xml',xmlfile):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'Specified config file is not an XML file.'))
+				log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'Specified config file is not an XML file.'))
 				trigger = True
 
 	return trigger
@@ -431,7 +431,7 @@ def extract_data(input_data_directory):
 	target_files = glob.glob(os.path.join(input_data_directory, '*'))
 	for extract_target in target_files:
 		if extract_target.lower().endswith(('.fq.gz', '.fastq.gz')):
-			log.info('{}{}{}{}'.format(Colour.bold, 'shd__ ', Colour.end, 'Detected compressed input data. Extracting!'))
+			log.info('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Detected compressed input data. Extracting!'))
 			break
 
 	for extract_target in target_files:
@@ -451,7 +451,7 @@ def sequence_pairings(data_path, instance_rundir, workflow_type):
 
 	file_count = len(sorted_input)
 	if not file_count % 2 == 0:
-		log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'I/O: Non-even number of input files specified. Cannot continue without pairing!'))
+		log.error('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'I/O: Non-even number of input files specified. Cannot continue without pairing!'))
 		sys.exit(2)
 
 	##
@@ -465,14 +465,14 @@ def sequence_pairings(data_path, instance_rundir, workflow_type):
 		## Check forward ends with R1
 		forward_data_name = sorted_input[i].split('/')[-1].split('.')[0]
 		if not forward_data_name.endswith('_R1'):
-			log.error('{}{}{}{}{}'.format(Colour.red,'shd__ ',Colour.end,'I/O: Forward input file does not end in _R1. ', forward_data))
+			log.error('{}{}{}{}{}'.format(Colour.red,'shda__ ',Colour.end,'I/O: Forward input file does not end in _R1. ', forward_data))
 			sys.exit(2)
 
 		##
 		## Check reverse ends with R2
 		reverse_data_name = sorted_input[i+1].split('/')[-1].split('.')[0]
 		if not reverse_data_name.endswith('_R2'):
-			log.error('{}{}{}{}{}'.format(Colour.red,'shd__ ',Colour.end,'I/O: Reverse input file does not end in _R2. ', reverse_data))
+			log.error('{}{}{}{}{}'.format(Colour.red,'shda__ ',Colour.end,'I/O: Reverse input file does not end in _R2. ', reverse_data))
 			sys.exit(2)
 
 		if workflow_type == 'sequence':
@@ -501,7 +501,7 @@ def filesystem_exists_check(path, raise_exception=True):
 	if os.path.lexists(path):
 		return True
 	if raise_exception:
-		log.error('{}{}{}{}'.format(Colour.red,'shd__ ',Colour.end,'Specified input path could not be found.'))
+		log.error('{}{}{}{}'.format(Colour.red,'shda__ ',Colour.end,'Specified input path could not be found.'))
 	return False
 
 def check_input_files(input_format, input_file):
@@ -522,7 +522,7 @@ def initialise_libraries(instance_params):
 		library_directory = library_subprocess.communicate()
 		library_subprocess.wait()
 		if not library in library_directory[0]:
-			log.critical('{}{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'Missing library: ', library, '. Not installed or not on $PATH'))
+			log.critical('{}{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'Missing library: ', library, '. Not installed or not on $PATH'))
 			raise ScaleHDException
 
 	def type_func(alias):
@@ -530,7 +530,7 @@ def initialise_libraries(instance_params):
 		alias_result = alias_subprocess.communicate()
 		alias_subprocess.wait()
 		if 'not found' in alias_result[0]:
-			log.critical('{}{}{}{}{}'.format(Colour.red,'shd__ ',Colour.end,'Missing alias: ', alias, '. Not aliased in .bash_profile!'))
+			log.critical('{}{}{}{}{}'.format(Colour.red,'shda__ ',Colour.end,'Missing alias: ', alias, '. Not aliased in .bash_profile!'))
 			raise ScaleHDException
 
 	##
@@ -586,21 +586,21 @@ def sanitise_outputs(jobname, output_argument):
 	if jobname:
 		target_output = os.path.join(output_root, jobname)
 		if not os.path.exists(target_output):
-			log.info('{}{}{}{}{}'.format(Colour.bold, 'shd__ ', Colour.end, 'Creating Output with prefix: ', jobname))
+			log.info('{}{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Creating Output with prefix: ', jobname))
 			run_dir = os.path.join(output_root, jobname)
 			mkdir_p(run_dir)
 		else:
 			purge_choice = ''
 			while True:
-				purge_choice = raw_input('{}{}{}{}'.format(Colour.bold, 'shd__ ', Colour.end, 'Job folder already exists. Delete existing folder? Y/N: '))
+				purge_choice = raw_input('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Job folder already exists. Delete existing folder? Y/N: '))
 				if not (purge_choice.lower() == 'y') and not (purge_choice.lower() == 'n'):
-					log.info('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'Invalid input. Please input Y or N.'))
+					log.info('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'Invalid input. Please input Y or N.'))
 					continue
 				else:
 					break
 
 			if purge_choice.lower() == 'y':
-				log.info('{}{}{}{}{}'.format(Colour.bold, 'shd__ ', Colour.end, 'Clearing pre-existing Jobname Prefix: ', jobname))
+				log.info('{}{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Clearing pre-existing Jobname Prefix: ', jobname))
 				run_dir = os.path.join(output_root, jobname)
 				if os.path.exists(run_dir):
 					shutil.rmtree(run_dir, ignore_errors=True)
@@ -618,14 +618,14 @@ def sanitise_outputs(jobname, output_argument):
 		## If the user specified root doesn't exist, make it
 		## Then make the run directory for datetime
 		if not os.path.exists(output_root):
-			log.info('{}{}{}{}'.format(Colour.bold, 'shd__ ', Colour.end, 'Creating output root... '))
+			log.info('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Creating output root... '))
 			mkdir_p(output_root)
 		run_dir = output_root + 'ScaleHDRun_' + today
-		log.info('{}{}{}{}'.format(Colour.bold, 'shd__ ', Colour.end, 'Creating instance run directory.. '))
+		log.info('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Creating instance run directory.. '))
 		mkdir_p(run_dir)
 
 		## Inform user it's all gonna be okaaaayyyy
-		log.info('{}{}{}{}'.format(Colour.green, 'shd__ ', Colour.end, 'Output directories OK!'))
+		log.info('{}{}{}{}'.format(Colour.green, 'shda__ ', Colour.end, 'Output directories OK!'))
 
 	return run_dir
 
