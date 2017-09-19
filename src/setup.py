@@ -87,7 +87,8 @@ setup(
 					  'PyPDF2',
 					  'reportlab',
 					  'rpy2',
-					  'generatr'
+					  'generatr',
+					  'biopython'
 					  ],
 
     # These are the data files to be included in the package

@@ -3,6 +3,9 @@ import errno
 
 class SequenceSample:
 	def __init__(self):
+		self.fw_label_encoder = None
+		self.rv_label_encoder = None
+
 		self.sample_label = ''
 		self.instance_path = ''
 		self.sample_qcpath = ''
@@ -12,7 +15,6 @@ class SequenceSample:
 		self.enshrine_flag = False
 		self.subsample_flag = False
 		self.broad_flag = False
-		self.group_flag = False
 		self.avoid_furthersubsample = False
 		self.total_seqreads = 0
 		self.fwalnpcnt = 0.0
@@ -61,8 +63,12 @@ class SequenceSample:
 		self.original_fqcount = 0
 		self.subsampled_fqcount = 0
 
+
 	##
 	## Setters
+	def set_fwlabel_encoder(self, fw_le): self.fw_label_encoder = fw_le
+	def set_rvlabel_encoder(self, rv_le): self.rv_label_encoder = rv_le
+
 	def set_label(self, label): self.sample_label = label
 	def set_instancepath(self, instance_path): self.instance_path = instance_path
 	def set_qcpath(self, qcpath): self.sample_qcpath = qcpath
@@ -72,7 +78,6 @@ class SequenceSample:
 	def set_enshrineflag(self, flag): self.enshrine_flag = flag
 	def set_subsampleflag(self, flag): self.subsample_flag = flag
 	def set_broadflag(self, flag): self.broad_flag = flag
-	def set_groupflag(self, flag): self.group_flag = flag
 	def set_avoidfurthersubsample(self, flag): self.avoid_furthersubsample = flag
 	def set_totalseqreads(self, count): self.total_seqreads = count
 	def set_fwalnpcnt(self, pcnt): self.fwalnpcnt = pcnt
@@ -123,6 +128,9 @@ class SequenceSample:
 
 	##
 	## Getters
+	def get_fwlabel_encoder(self): return self.fw_label_encoder
+	def get_rvlabel_encoder(self): return self.rv_label_encoder
+
 	def get_label(self): return self.sample_label
 	def get_instancepath(self): return self.instance_path
 	def get_qcpath(self): return self.sample_qcpath
@@ -132,7 +140,6 @@ class SequenceSample:
 	def get_enshrineflag(self): return self.enshrine_flag
 	def get_subsampleflag(self): return self.subsample_flag
 	def get_broadflag(self): return self.broad_flag
-	def get_groupflag(self): return self.group_flag
 	def get_avoidfurthersubsample(self): return self.avoid_furthersubsample
 	def get_totalseqreads(self): return self.total_seqreads
 	def get_fwalnpcnt(self): return self.fwalnpcnt

@@ -85,6 +85,7 @@ If you do not have sudo access (to install requisite packages), you should run S
     ~~~~
     Quality Control:
         Cutadapt
+        Biopython
     Alignment:
         BWA        
         SeqTK

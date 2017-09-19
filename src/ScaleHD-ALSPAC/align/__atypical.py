@@ -137,6 +137,10 @@ class ScanAtypical:
 		self.assembly_object = pysam.AlignmentFile(self.subsample_assembly, 'rb')
 		self.present_references = self.assembly_object.references
 		assembly_refdat = []
+		##
+		## Use our label encoder to inverse transform back to the normal reference
+		## as the CAG_X_Y_CCG_Z structure is utilised heavily within DSP
+		## encoding :: (str(le.inverse_transform(np.int64(reference)))
 		for reference in self.present_references:
 			reference_tuple = (reference, self.assembly_object.count(reference))
 			if reference_tuple[1] == 0: pass
@@ -214,6 +218,7 @@ class ScanAtypical:
 		##
 		## Iterate over top 3 aligned references in this assembly
 		## Fetch the reads aligned to the current reference
+		le = self.sequencepair_object.get_fwlabel_encoder()
 		for investigation in self.assembly_targets:
 
 			##
@@ -640,12 +645,14 @@ class ScanAtypical:
 		##
 		## For each of the alleles we've determined..
 		## Get intervening lengths, create accurate genotype string
+		## Utilise label encoder to convert from ALSPAC encoded to regular reference
+		le = self.sequencepair_object.get_fwlabel_encoder()
 		atypical_count = 0
 		for allele in [primary_allele, secondary_allele]:
 			if allele['Status'] == 'Atypical': atypical_count += 1
 			else: allele['InterveningSequence'] = 'CAACAGCCGCCA'
 			new_genotype, caacag_count, ccgcca_count = self.create_genotype_label(allele)
-			allele['OriginalReference'] = allele['Reference']
+			allele['OriginalReference'] = le.inverse_transform(np.int64(allele['Reference']))
 			allele['Reference'] = new_genotype
 			allele['EstimatedCAACAG'] = caacag_count
 			allele['EstimatedCCGCCA'] = ccgcca_count

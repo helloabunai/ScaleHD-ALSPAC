@@ -59,16 +59,16 @@ class ScaleHD_ALSPAC:
 		self.likelihood_matrix = pkg_resources.resource_filename(__name__, 'train/likelihood_matrix.csv')
 		self.raw_matrix = pkg_resources.resource_filename(__name__, 'train/raw_matrix.csv')
 		self.training_data = {'GenericDescriptor': self.generic_descriptor, 'CollapsedCCGZygosity': self.collapsed_ccg_zygosity}
+		self.fw_encoder = None; self.rv_encoder = None
 
 		##
 		## Argument parser from CLI
-		self.parser = argparse.ArgumentParser(prog='scalehd', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
+		self.parser = argparse.ArgumentParser(prog='scalehda', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
 		self.parser.add_argument('-v', '--verbose', help='Verbose output mode. Setting this flag enables verbose output. Default: off.', action='store_true')
 		self.parser.add_argument('-c', '--config', help='Pipeline config. Specify a directory to your ArgumentConfig.xml file.', nargs=1, required=True)
 		self.parser.add_argument('-t', '--threads', help='Thread utilisation. Typically only alters third party alignment performance. Default: system max.', type=int, choices=xrange(1, THREADS+1), default=THREADS)
 		self.parser.add_argument('-e', '--enshrine', help='Do not remove non-uniquely mapped reads from SAM files.', action='store_true')
 		self.parser.add_argument('-b', '--broadscope', help='Do not subsample fastq data in the case of high read-count.', action='store_true')
-		self.parser.add_argument('-g', '--groupsam', help='Outputs all sorted SAM files into one instance-wide output folder, rather than sample subfolders.', action='store_true')
 		self.parser.add_argument('-j', '--jobname', help='Customised folder output name. If not specified, defaults to normal output naming schema.', type=str)
 		self.parser.add_argument('-o', '--output', help='Output path. Specify a directory you wish output to be directed towards.', metavar='output', nargs=1, required=True)
 		self.args = self.parser.parse_args()
@@ -79,7 +79,7 @@ class ScaleHD_ALSPAC:
 		if self.args.verbose:
 			log.basicConfig(format='%(message)s', level=log.DEBUG)
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.'))
-			log.info('{}{}{}{}'.format(clr.bold, 'sdha__ ', clr.end, '!! ALPSAC PheWAS Version : Make sure you intend to use this fork !!'))
+			log.info('{}{}{}{}'.format(clr.bold, 'sdha__ ', clr.end, '!! ALPSAC PheWAS Version. Make sure you intend to use this fork !!'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'alastair.maxwell@glasgow.ac.uk\n'))
 		else:
 			log.basicConfig(format='%(message)s')
@@ -95,7 +95,6 @@ class ScaleHD_ALSPAC:
 			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, e))
 			sys.exit(2)
 		self.enshrine_assembly = self.args.enshrine
-		self.group_flag = self.args.groupsam
 		self.broad_flag = self.args.broadscope
 		self.instance_summary = {}; self.instance_graphs = ''
 
@@ -148,10 +147,12 @@ class ScaleHD_ALSPAC:
 				## ALSPAC<<
 				## Indexes are required to be obfuscated so the end-user cannot determine the repeat count
 				## by observing intermediary files
-				forward_index = align.ReferenceIndex(forward_reference, self.index_path).get_index_path()
-				reverse_index = align.ReferenceIndex(reverse_reference, self.index_path).get_index_path()
+				forward_index, forward_encoder = align.ReferenceIndex(forward_reference, self.index_path).get_index_path()
+				reverse_index, reverse_encoder = align.ReferenceIndex(reverse_reference, self.index_path).get_index_path()
 				self.typical_indexes = [forward_index, reverse_index]
 				self.reference_indexes = [forward_index, reverse_index]
+				self.fw_encoder = forward_encoder
+				self.rv_encoder = reverse_encoder
 
 		##
 		## Instance results (genotype table)
@@ -235,11 +236,12 @@ class ScaleHD_ALSPAC:
 				current_seqpair.set_bayespath(seqpair_dat[6])
 				current_seqpair.set_enshrineflag(self.enshrine_assembly)
 				current_seqpair.set_broadflag(self.broad_flag)
-				current_seqpair.set_groupflag(self.group_flag)
 				current_seqpair.set_fwidx(self.reference_indexes[0])
 				current_seqpair.set_rvidx(self.reference_indexes[1])
 				current_seqpair.set_fwreads(seqpair_dat[0])
 				current_seqpair.set_rvreads(seqpair_dat[1])
+				current_seqpair.set_fwlabel_encoder(self.fw_encoder)
+				current_seqpair.set_rvlabel_encoder(self.rv_encoder)
 				current_seqpair.generate_sampletree()
 
 				############################################
