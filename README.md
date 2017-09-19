@@ -1,5 +1,10 @@
-ScaleHD: Automated Huntington Disease genotyping
+ScaleHD-ALSPAC: Automated Huntington Disease genotyping with end-to-end allele masking
 =========================================================
+!! This self-fork of ScaleHD is intended for use in the ALSPAC PheWAS; if you're not involved in that study then perhaps
+this is not of use to you. Allele end-to-end masking entails the complete coverage of 'true' allele sizes, if the repeat count
+for said allele is greater than 31 -- all intermediary files and data must be "encrypted" from the end user, so the true
+genotype cannot be determined.
+
 ScaleHD is a package for automating the process of genotyping microsatellite repeats in Huntington Disease data.
 We utilise machine learning approaches to take into account natural data 'artefacts', such as PCR slippage and somatic
 mosaicism, when processing data. This provides the end-user with a simple to use platform which can robustly predict genotypes from input data.
@@ -11,7 +16,7 @@ are utilised in a similar approach, to determine the CAG and intervening structu
 
 The general overview of the application is as follows:
 1) Input FastQ files are subsampled, if an overwhelming number of reads are present. This can be overruled with the -b flag.
-2) Sequence quality control is carried out per the user's instructions. We reccomend triming of any 5-prime spacer+primer combinations, for optimal alignment.
+2) Sequence quality control is carried out per the user's instructions. We reccomend trimming of any 5-prime spacer+primer combinations, for optimal alignment.
 3) Alignment of these files, to a typical HD structure (CAG_1_1_CCG_2) reference, is carried out.
 4) Assemblies are scanned with Digital Signal Processing to detect any possible atypical structures (e.g. CAG_2_1_CCG_3).
 4.1) If no atypical alleles are detected, proceed as normal.
@@ -80,7 +85,6 @@ If you do not have sudo access (to install requisite packages), you should run S
     ~~~~
     Quality Control:
         Cutadapt
-        FastQC (Java required)
     Alignment:
         BWA        
         SeqTK
@@ -182,6 +186,7 @@ A brief overview of flags provided in the output is as follows:
     CCG Zygosity Rewritten:: A sample (aligned to a typical reference) that was heterozygous (CCG), was detected to be an atypical homozygous (CCG) sample.
     CCT Uncertainty:: The most common CCT 'sizes' returned from DSP were too similar in count (e.g. CCT2 == 54%, CCT3 == 46%) to be certain.
     SVM Failure:: SVM CCG zygosity calling was incorrect, as a result of the resultant confusion matrix providing differing results from a brute force ratio check. Manual inspection highly recommended.
+    Differential Confusion:: When deciding between a homozygous haplotype or neighbouring peak, the differential used in determining this confused the sorting algorithm.
     Peak Inspection Warning:: At least one allele failed inspection on the repeat-count distribution the genotype(s) was(were) derived from. Common in very low read count samples/poor sequencing.
     Low Distribution Reads:: A warning which is triggered when at least one allele's repeat count distribution contains an unappealingly low number of reads.
     Low Peak Reads:: A fatal warning which is triggered when, in a given repeat count distribution, the returned N value contains a very low number of reads. Manual inspection highly recommended.
