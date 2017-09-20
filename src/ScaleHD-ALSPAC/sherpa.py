@@ -158,11 +158,11 @@ class ScaleHD_ALSPAC:
 		## Instance results (genotype table)
 		self.instance_results = os.path.join(self.instance_rundir, 'InstanceReport.csv')
 		self.padded_distributions = os.path.join(self.instance_rundir, 'AlignedDistributions.csv')
-		self.header = '{},{},{},{},{},{},{},{},{},{},{},{},' \
+		self.header = '{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
 					  '{},{},{},{},{},{},{},{},{},{},{},{},{},' \
 					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
-			'SampleName', '' ,'Primary GTYPE', 'Status', 'Map (FW)', 'Map% (FW)', 'Map (RV)', 'Map% (RV)', 'BSlippage',
-			'Somatic Mosaicism', 'Intervening Sequence', 'Confidence', '', 'Secondary GTYPE', 'Status', 'Map (FW)',
+			'SampleName', '' ,'Primary GTYPE', 'Status', 'Clipped?', 'Map (FW)', 'Map% (FW)', 'Map (RV)', 'Map% (RV)', 'BSlippage',
+			'Somatic Mosaicism', 'Intervening Sequence', 'Confidence', '', 'Secondary GTYPE', 'Status', 'Clipped?', 'Map (FW)',
 			'Map% (FW)', 'Map (RV)','Map% (RV)', 'BSlippage', 'Somatic Mosaicism', 'Intervening Sequence', 'Confidence',
 			'', 'Exception Raised', 'Homozygous Haplotype', 'Neighbouring Peaks', 'Diminished Peaks', 'Novel Atypical',
 			'Alignment Warning', 'Atypical Alignment Warning', 'CCG Rewritten', 'CCG Zygosity Rewritten',
@@ -463,12 +463,12 @@ class ScaleHD_ALSPAC:
 			return rep_str
 
 		unparsed_info = [[sequencepair_object, 'get_label'], ['NULL', 'NULL'], [primary_allele, 'get_reflabel'],
-						 [primary_allele, 'get_allelestatus'], [primary_allele, 'get_fwalncount'],
+						 [primary_allele, 'get_allelestatus'], [primary_allele, 'get_alleleclip'], [primary_allele, 'get_fwalncount'],
 						 [primary_allele, 'get_fwalnpcnt'], [primary_allele, 'get_rvalncount'],
 						 [primary_allele, 'get_rvalnpcnt'], [primary_allele, 'get_backwardsslippage'],
 						 [primary_allele, 'get_somaticmosaicism'], [primary_allele, 'get_intervening'],
 						 [primary_allele, 'get_alleleconfidence'], ['NULL', 'NULL'], [secondary_allele, 'get_reflabel'],
-						 [secondary_allele, 'get_allelestatus'], [secondary_allele, 'get_fwalncount'],
+						 [secondary_allele, 'get_allelestatus'], [secondary_allele, 'get_alleleclip'], [secondary_allele, 'get_fwalncount'],
 						 [secondary_allele, 'get_fwalnpcnt'], [secondary_allele, 'get_rvalncount'],
 						 [secondary_allele, 'get_rvalnpcnt'], [secondary_allele, 'get_backwardsslippage'],
 						 [secondary_allele, 'get_somaticmosaicism'], [secondary_allele, 'get_intervening'],

@@ -268,6 +268,7 @@ class IndividualAllele:
 		self.slippage_overwrite = False
 		self.fatalalignmentwarning = False
 		self.distribution_readcount_warning = False
+		self.allele_clipped = False
 
 	##
 	## Setters
@@ -334,6 +335,7 @@ class IndividualAllele:
 	def set_slippageoverwrite(self, state): self.slippage_overwrite = state
 	def set_fatalalignmentwarning(self, state): self.fatalalignmentwarning = state
 	def set_distribution_readcount_warning(self, state): self.distribution_readcount_warning = state
+	def set_alleleclip(self, state): self.allele_clipped = state
 
 	##
 	## Getters
@@ -400,3 +402,4 @@ class IndividualAllele:
 	def get_slippageoverwrite(self): return self.slippage_overwrite
 	def get_fatalalignmentwarning(self): return self.fatalalignmentwarning
 	def get_distribution_readcount_warning(self): return self.distribution_readcount_warning
+	def get_alleleclip(self): return self.allele_clipped

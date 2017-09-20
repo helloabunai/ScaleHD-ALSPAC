@@ -9,6 +9,7 @@ __author__ = 'alastair.maxwell@glasgow.ac.uk'
 import os
 import csv
 import PyPDF2
+import shutil
 import warnings
 import peakutils
 import matplotlib
@@ -63,10 +64,19 @@ class AlleleGenotyping:
 			log.warn('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, '1+ allele(s) failed peak validation. Precision not guaranteed.'))
 			self.warning_triggered = True
 			self.sequencepair_object.set_peakinspection_warning(True)
-		self.n_align_dist()
-		self.render_graphs()
+		#self.n_align_dist()
 		self.calculate_score()
+
+		##
+		## ALSPAC remove compromising files... (for now?)
+		shutil.rmtree(self.sequencepair_object.get_alignpath())
+
+		##
+		## Continue with graphs/results with fixed output
+		self.render_graphs()
 		self.set_report()
+
+
 
 	def build_zygosity_model(self):
 		"""
@@ -1006,37 +1016,51 @@ class AlleleGenotyping:
 				with open(inspection_logfi,'w') as logfi:
 					logfi.write(inspection_str)
 					logfi.close()
+
+			##
+			## ALSPAC mask allele size
+			if int(allele.get_reflabel().split('_')[0]) > 31:
+				allele.set_referencelabel('{}_{}_{}_{}_{}'.format('31+', novel_caacag, novel_ccgcca,
+																  allele.get_fodccg(), allele.get_cct()))
+				allele.set_cagval(31); allele.set_fodcag(31)
+				allele.set_alleleclip(True)
+				allele.set_allelegenotype('{}_{}_{}_{}_{}'.format('31+', novel_caacag, novel_ccgcca,
+																  allele.get_fodccg(), allele.get_cct()))
+
 		return self.pass_vld
 
-	def n_align_dist(self):
-
-		"""
-		Function to align alleles of the current sample to the same n-point as any previous alleles processed
-		in this run. Append the padded distributions to the same CSV file for in-depth somatic mosaicism
-		studies..
-		:return: fuck all
-		"""
-
-		##
-		## For each allele in the sample get the target CCG distribution
-		## Pad it so that N (the determined genotype) is at the same index in the output file
-		## output the padded distribution and close the file
-		for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
-			distribution_split = self.split_cag_target(allele.get_fwarray())
-			target = distribution_split['CCG{}'.format(allele.get_ccg())]
-			fix_target = ','.join(['%.5f' % num for num in target])
-
-			anchor = 203
-			anchor_port = anchor - allele.get_cag()
-			anchor_starboard = anchor_port + 200
-			left_buffer = '-,'*anchor_port
-			right_buffer = '-,'*(403-anchor_starboard)
-			padded_dist = left_buffer+fix_target+right_buffer[:-1]
-			sample_output = '{},{},CCG{},{}\n'.format(self.sequencepair_object.get_label(), allele.get_header(),
-													  allele.get_ccg(), padded_dist)
-
-			with open(self.padded_target, 'a') as distfi: distfi.write(sample_output)
-			distfi.close()
+	# Commented out for ALSPAC (for the time being)
+	# def n_align_dist(self):
+	#
+	# 	"""
+	# 	Function to align alleles of the current sample to the same n-point as any previous alleles processed
+	# 	in this run. Append the padded distributions to the same CSV file for in-depth somatic mosaicism
+	# 	studies..
+	# 	:return: fuck all
+	# 	"""
+	#
+	# 	##TODO alspac n-alignment?? hmm??
+	#
+	# 	##
+	# 	## For each allele in the sample get the target CCG distribution
+	# 	## Pad it so that N (the determined genotype) is at the same index in the output file
+	# 	## output the padded distribution and close the file
+	# 	for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
+	# 		distribution_split = self.split_cag_target(allele.get_fwarray())
+	# 		target = distribution_split['CCG{}'.format(allele.get_ccg())]
+	# 		fix_target = ','.join(['%.5f' % num for num in target])
+	#
+	# 		anchor = 203
+	# 		anchor_port = anchor - allele.get_cag()
+	# 		anchor_starboard = anchor_port + 200
+	# 		left_buffer = '-,'*anchor_port
+	# 		right_buffer = '-,'*(403-anchor_starboard)
+	# 		padded_dist = left_buffer+fix_target+right_buffer[:-1]
+	# 		sample_output = '{},{},CCG{},{}\n'.format(self.sequencepair_object.get_label(), allele.get_header(),
+	# 												  allele.get_ccg(), padded_dist)
+	#
+	# 		with open(self.padded_target, 'a') as distfi: distfi.write(sample_output)
+	# 		distfi.close()
 
 	def render_graphs(self):
 
@@ -1050,6 +1074,10 @@ class AlleleGenotyping:
 		sec_rvarray = self.sequencepair_object.get_secondaryallele().get_rvarray()
 		pri_fwarray = self.sequencepair_object.get_primaryallele().get_fwarray()
 		predpath = self.sequencepair_object.get_predictpath()
+
+		##
+		## ALSPAC sum bin for 31+ alleles...
+		np.set_printoptions(threshold=np.nan)
 
 		def graph_subfunction(x, y, axis_labels, xticks, peak_index, predict_path, file_handle, prefix='', graph_type=None, neg_anchor=False):
 			x = np.linspace(x[0],x[1],x[2])
@@ -1065,7 +1093,7 @@ class AlleleGenotyping:
 				plt.xlim(xticks[1][0], xticks[1][1])
 				pplot(x,y,peak_index)
 			peak_index = [i+1 for i in peak_index]
-			plt.legend(['Genotype: {}'.format(peak_index)])
+			plt.legend(['Genotype: {}'.format(peak_index)], loc=2)
 			plt.savefig(os.path.join(predict_path, file_handle), format='pdf')
 			plt.close()
 
@@ -1166,6 +1194,17 @@ class AlleleGenotyping:
 				temp_graphs = []
 				distribution_split = self.split_cag_target(allele.get_fwarray())
 				target_distro = distribution_split['CCG{}'.format(allele.get_ccg())]
+
+				##
+				## ALSPAC graph clipping
+				## Take target distro and bin all reads >31 into 31
+				## Set new distribution as the target for rendering
+				normal_split = target_distro[:31]
+				expanded_split = target_distro[31:]
+				expansion_sum = np.sum(expanded_split)
+				normal_split[-1] = expansion_sum
+				target_distro = np.concatenate((normal_split,np.asarray([0,0,0,0,0])))
+
 				if self.zygosity_state == 'HOMO+':
 					for i in range(0, len(target_distro)):
 						if i != allele.get_cag() - 1:
@@ -1181,9 +1220,11 @@ class AlleleGenotyping:
 					peak_filename = 'CCG{}-CAGDetection.pdf'.format(allele.get_fodccg())
 					peak_prefix = '(CCG{}) '.format(allele.get_fodccg())
 				peak_graph_path = os.path.join(predpath, peak_filename)
-				## Render the graph, append to list, close plot
-				graph_subfunction([0, 199, 200], target_distro, ['CAG Value', 'Read Count'],
-								  ([1, 200, 50], [1, 200], [0,50,100,150,200]), [np.int64(allele.get_fodcag() - 1)],
+				# graph_subfunction([0, 199, 200], target_distro, ['CAG Value', 'Read Count'],
+				# 				  ([1, 200, 50], [1, 200], [0,50,100,150,200]), [np.int64(allele.get_fodcag() - 1)],
+				# 				  predpath, peak_filename, prefix=peak_prefix)
+				graph_subfunction([0, 35, 36], target_distro, ['CAG Value', 'Read Count'],
+								  ([-1, 40, 5], [-1, 40], [-1,5,10,15,20,25,30,35,40]), [np.int64(allele.get_fodcag()-1)],
 								  predpath, peak_filename, prefix=peak_prefix)
 				temp_graphs.append(peak_graph_path); plt.close()
 
