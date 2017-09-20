@@ -6,7 +6,6 @@ __author__ = 'alastair.maxwell@glasgow.ac.uk'
 ## Generals
 import os
 import sys
-import errno
 import subprocess
 import shutil
 import logging as log
@@ -77,21 +76,26 @@ def extract_repeat_distributions(sample_root, alignment_outdir, alignment_outfil
 			data_string += values[0] + ',' + values[1] + ',' + values[2] + ',0\n'
 
 	##
-	## Instead of writing clean distribution to file, we save to a dictionary
+	## Write to dictionary and file
 	filestring = sample_root + '\n'
 	filestring += data_string
 	split_repeatdist = filestring.split('\n')
-	hashed_data = {'SampleName': split_repeatdist[0]}
+	#hashed_data = {'SampleName': split_repeatdist[0]}
+	hashed_data = {}
 	for reference_alignment in split_repeatdist[1:-1]:
 		reference_split = reference_alignment.split(',')
 		hashed_data[reference_split[0]] = reference_split[2]
+	csv_path = os.path.join(alignment_outdir, sample_root+'_RepeatDistribution.csv')
+	csv_file = open(csv_path, 'w')
+	csv_file.write(filestring)
+	csv_file.close()
 
 	##
 	## Delete compromising files (ALSPAC)
 	## Return dictionary of repeat count distribution (hashed)
 	os.remove(raw_repeat_distribution)
 	os.remove(alignment_outfile)
-	return hashed_data, sorted_assembly
+	return csv_path, hashed_data, sorted_assembly
 
 class SeqAlign:
 
@@ -161,15 +165,17 @@ class SeqAlign:
 		## Align the two FastQ files in the pair
 		if self.individual_allele is not None: typical_flag = 'atypical'
 		else: typical_flag = 'typical'
-		forward_distribution_dictionary, forward_report, forward_assembly, fwmapped_pcnt, fwmapped_count = self.execute_alignment(forward_index,forward_reads,'Aligning forward reads..','R1',typical_flag)
-		reverse_distribution_dictionary, reverse_report, reverse_assembly, rvmapped_pcnt, rvmapped_count = self.execute_alignment(reverse_index,reverse_reads,'Aligning reverse reads..','R2',typical_flag)
+		fw_csv, forward_distribution_dictionary, forward_report, forward_assembly, fwmapped_pcnt, fwmapped_count = self.execute_alignment(forward_index,forward_reads,'Aligning forward reads..','R1',typical_flag)
+		rv_csv, reverse_distribution_dictionary, reverse_report, reverse_assembly, rvmapped_pcnt, rvmapped_count = self.execute_alignment(reverse_index,reverse_reads,'Aligning reverse reads..','R2',typical_flag)
 		self.align_report.append(forward_report); self.align_report.append(reverse_report)
 
 		##
 		## Update object parameters with appropriate distribution/assembly
 		if not self.individual_allele:
-			self.sequencepair_object.set_fwdist(forward_distribution_dictionary)
-			self.sequencepair_object.set_rvdist(reverse_distribution_dictionary)
+			self.sequencepair_object.set_fwdist(fw_csv)
+			self.sequencepair_object.set_rvdist(rv_csv)
+			self.sequencepair_object.set_fwdict(forward_distribution_dictionary)
+			self.sequencepair_object.set_rvdict(reverse_distribution_dictionary)
 			self.sequencepair_object.set_fwassembly(forward_assembly)
 			self.sequencepair_object.set_rvassembly(reverse_assembly)
 			self.sequencepair_object.set_fwalnpcnt(fwmapped_pcnt)
@@ -177,8 +183,10 @@ class SeqAlign:
 			self.sequencepair_object.set_fwalncount(fwmapped_count)
 			self.sequencepair_object.set_rvalncount(rvmapped_count)
 		else:
-			self.individual_allele.set_fwdist(forward_distribution_dictionary)
-			self.individual_allele.set_rvdist(reverse_distribution_dictionary)
+			self.individual_allele.set_fwdist(fw_csv)
+			self.individual_allele.set_rvdist(rv_csv)
+			self.individual_allele.set_fwdict(forward_distribution_dictionary)
+			self.individual_allele.set_rvdict(reverse_distribution_dictionary)
 			self.individual_allele.set_fwassembly(forward_assembly)
 			self.individual_allele.set_rvassembly(reverse_assembly)
 			self.individual_allele.set_fwalnpcnt(fwmapped_pcnt)
@@ -260,7 +268,7 @@ class SeqAlign:
 		## Create the relevant objects without purging (i.e. -e was present at CLI)
 		flagstat_path = '{}/{}'.format(alignment_outdir, 'AlignmentStats.txt')
 		if self.enshrine_flag:
-			hashed_dictionary, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, aln_outpath)
+			csv_path, hashed_dictionary, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, aln_outpath)
 			sys.stdout.flush()
 			## Run samtools flagstat on alignment file
 			## Set allele object's flagstat file variable..
@@ -280,7 +288,7 @@ class SeqAlign:
 		## Otherwise -e wasn't present (default), and we purge all non-uniquely mapped reads
 		else:
 			purged_sam, flagstat_output, pre_purge, post_purge = purge_alignment_map(alignment_outdir, aln_outpath)
-			hashed_dictionary, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, purged_sam)
+			csv_path, hashed_dictionary, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, purged_sam)
 			sys.stdout.flush()
 
 			## Write output to file..
@@ -296,11 +304,7 @@ class SeqAlign:
 			aln_pcnt =  float(post_purge[0])/float(pre_purge[0])*100
 			aln_count = post_purge[0]
 
-		##hmm..
-		if '_SUB_' in target_fqfile:
-			os.remove(target_fqfile)
-
-		return hashed_dictionary, alignment_report, sorted_assembly, aln_pcnt, aln_count
+		return csv_path, hashed_dictionary, alignment_report, sorted_assembly, aln_pcnt, aln_count
 
 	def get_alignreport(self):
 		return self.align_report
@@ -349,11 +353,6 @@ class ReferenceIndex:
 		##
 		## Iterate over both dictionaries to attach sequence data to appropriate reference
 		for unhashed, hashed in zip(unhashed_labels, hashed_labels):
-			if '4k-HD-INTER' in self.reference:
-				with open('/Users/alastairm/Desktop/labelencoding.txt', 'a') as testfi:
-					testfi.write('\n>>Before: {}\n'.format(unhashed))
-					testfi.write('After: {}\n'.format(hashed))
-					testfi.write('re: {}\n\n'.format(le.inverse_transform(hashed)))
 			hashed_data[hashed] = unhashed_data[unhashed]
 
 		##

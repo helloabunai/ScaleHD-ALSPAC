@@ -30,6 +30,8 @@ class SequenceSample:
 		self.reverse_assembly = ''
 		self.forward_distribution = []
 		self.reverse_distribution = []
+		self.forward_dictionary = {}
+		self.reverse_dictionary = {}
 
 		self.trim_report = []
 		self.align_report = []
@@ -93,10 +95,11 @@ class SequenceSample:
 	def set_rvassembly(self, assembly): self.reverse_assembly = assembly
 	def set_fwdist(self, dist): self.forward_distribution = dist
 	def set_rvdist(self, dist): self.reverse_distribution = dist
+	def set_fwdict(self, dictn): self.forward_dictionary = dictn
+	def set_rvdict(self, dictn): self.reverse_dictionary = dictn
 
 	def set_trimreport(self, report): self.trim_report = report
 	def set_alignreport(self, report): self.align_report = report
-	def set_atypicalreport(self, report): self.atypical_report = report
 	def set_genotypereport(self, report): self.genotype_report = report
 	def set_snpreport(self, report): self.snp_report = report
 
@@ -155,10 +158,11 @@ class SequenceSample:
 	def get_rvassembly(self): return self.reverse_assembly
 	def get_fwdist(self): return self.forward_distribution
 	def get_rvdist(self): return self.reverse_distribution
+	def get_fwdict(self): return self.forward_dictionary
+	def get_rvdict(self): return self.reverse_dictionary
 
 	def get_trimreport(self): return self.trim_report
 	def get_alignreport(self): return self.align_report
-	def get_atypicalreport(self): return self.atypical_report
 	def get_genotypereport(self): return self.genotype_report
 	def get_snpreport(self): return self.snp_report
 
@@ -236,6 +240,8 @@ class IndividualAllele:
 		self.reverse_assembly = ''
 		self.forward_distribution = []
 		self.reverse_distribution = []
+		self.forward_dict = {}
+		self.reverse_dict = {}
 		self.forward_array = []
 		self.reverse_array = []
 		self.ccg_peak_threshold = 0.0
@@ -300,6 +306,8 @@ class IndividualAllele:
 	def set_rvassembly(self, assembly): self.reverse_assembly = assembly
 	def set_fwdist(self, dist): self.forward_distribution = dist
 	def set_rvdist(self, dist): self.reverse_distribution = dist
+	def set_fwdict(self, dictn): self.forward_dict = dictn
+	def set_rvdict(self, dictn): self.reverse_dict = dictn
 	def set_fwarray(self, array): self.forward_array = array
 	def set_rvarray(self, array): self.reverse_array = array
 	def set_ccgthreshold(self, threshold): self.ccg_peak_threshold = threshold
@@ -364,6 +372,8 @@ class IndividualAllele:
 	def get_rvassembly(self): return self.reverse_assembly
 	def get_fwdist(self): return self.forward_distribution
 	def get_rvdist(self): return self.reverse_distribution
+	def get_fwdict(self): return self.forward_dict
+	def get_rvdict(self): return self.reverse_dict
 	def get_fwarray(self): return self.forward_array
 	def get_rvarray(self): return self.reverse_array
 	def get_ccgthreshold(self): return self.ccg_peak_threshold

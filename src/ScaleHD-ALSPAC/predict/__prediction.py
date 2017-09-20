@@ -13,6 +13,7 @@ import warnings
 import peakutils
 import matplotlib
 import subprocess
+import collections
 import numpy as np
 import logging as log
 matplotlib.use('Agg')
@@ -39,6 +40,8 @@ class AlleleGenotyping:
 		self.training_data = training_data
 		self.invalid_data = atypical_logic
 		self.padded_target = padded_target
+		self.fw_encoder = self.sequencepair_object.get_fwlabel_encoder()
+		self.rv_encoder = self.sequencepair_object.get_rvlabel_encoder()
 		self.allele_report = ''
 		self.warning_triggered = False
 
@@ -158,19 +161,46 @@ class AlleleGenotyping:
 		unlabelled_distro = np.array(placeholder_array)
 		return unlabelled_distro
 
-	@staticmethod
-	def distribution_collapse(distribution_array):
+	def distribution_collapse(self, hashed_dictionary, dir):
 		"""
 		Function to take a full 200x20 array (struc: CAG1-200,CCG1 -- CAG1-200CCG2 -- etc CCG20)
 		and aggregate all CAG values for each CCG
-		:param distribution_array: input dist (should be (1-200,1-20))
+		:param hashed_dictionary: input dict of {hashed_key, repeat_count}
+		:param dir: direction of distribution (fw reads or rv reads)
 		:return: 1x20D np(array)
 		"""
 
 		##
+		## ALSPAC hashed dictionary requires to be turned into a functional distribution
+		## Utilise our label encoder for ALSPAC obfuscation
+		## Dictionaries are immutable (pop fucks everything up), make a new (sorted) one for unhashed
+		encoder = None
+		if dir == 'fw': encoder = self.sequencepair_object.get_fwlabel_encoder()
+		if dir == 'rv': encoder = self.sequencepair_object.get_rvlabel_encoder()
+		unhashed_dictionary = {}
+		for k,v in hashed_dictionary.iteritems():
+			unhashed = encoder.inverse_transform(np.int64(k))
+			unhashed_dictionary[unhashed] = v
+
+		##
+		##TODO investigate how atypical realignment references will fuck this up...
+		## Take unencrypted dictionary and sort if via 2D lambda function
+		## i.e. lambda x[0] = sort by CCG (i.e. CAG_1_1_CCG_2).split('_')[3]
+		## then sort again by lambda x[1] = sort by CAG (i.e. CAG_1_1_CCG_2).split('_')[0]
+		unhashed_sorted = collections.OrderedDict(sorted(unhashed_dictionary.items(),
+														 key=lambda x: (int(x[0].split('_')[3]),
+																		int(x[0].split('_')[0]))))
+
+		##
+		## Convert unencrypted, sorted dictionary values into distribution list
+		## Allows implementation with existing genotyping workflow with no changes
+		list_dist = [int(x) for x in unhashed_sorted.values()]
+		fixed_distribution = np.asarray(list_dist)
+
+		##
 		## Hopefully the user has aligned to the right reference dimensions
 		try:
-			ccg_arrays = np.split(distribution_array, 20)
+			ccg_arrays = np.split(fixed_distribution, 20)
 		except ValueError:
 			raise Exception('Input reads individisible by 20. Utilised incorrect reference style.')
 
@@ -182,7 +212,7 @@ class AlleleGenotyping:
 			collapsed_array.append(np.sum(ccg_array))
 			ccg_counter += 1
 
-		return np.asarray(collapsed_array)
+		return np.asarray(collapsed_array), fixed_distribution
 
 	@staticmethod
 	def pad_distribution(distribution_array, allele_object):
@@ -311,8 +341,6 @@ class AlleleGenotyping:
 			## Unlabelled distributions
 			self.forward_distribution = self.scrape_distro(allele_object.get_fwdist())
 			self.reverse_distribution = self.scrape_distro(allele_object.get_rvdist())
-			allele_object.set_fwarray(self.forward_distribution)
-			allele_object.set_rvarray(self.reverse_distribution)
 
 			##
 			## Distribution ead count / Peak read count
@@ -333,22 +361,32 @@ class AlleleGenotyping:
 			###############################
 			## Stage one -- CCG Zygosity ##
 			###############################
+			## ALSPAC hashed dictionaries
+			forward_dictionary = self.sequencepair_object.get_fwdict()
+			reverse_dictionary = self.sequencepair_object.get_rvdict()
+
 			## Typical allele
 			if allele_object.get_allelestatus() == 'Typical':
-				self.forward_aggregate = self.distribution_collapse(self.forward_distribution)
-				self.reverse_aggregate = self.distribution_collapse(self.reverse_distribution)
+				self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw')
+				self.reverse_aggregate, reverse_distribution = self.distribution_collapse(reverse_dictionary, 'rv')
+				allele_object.set_fwarray(forward_distribution)
+				allele_object.set_rvarray(reverse_distribution)
 
 			## Atypical allele
+			## TODO atypical allele realignment ref may fuck shit up, investigate
 			if allele_object.get_allelestatus() == 'Atypical':
 				## Data has been realigned to custom reference
 				if not self.invalid_data:
-					self.forward_aggregate = self.distribution_collapse(self.forward_distribution)
+					self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw')
 					self.reverse_aggregate = self.reverse_distribution
+					allele_object.set_fwarray(forward_distribution)
 					allele_object.set_rvarray(self.reverse_aggregate)
 				## Data has not been realigned -- brute force genotyping
 				if self.invalid_data:
-					self.forward_aggregate = self.distribution_collapse(self.forward_distribution)
-					self.reverse_aggregate = self.distribution_collapse(self.reverse_distribution)
+					self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw')
+					self.reverse_aggregate, reverse_distribution = self.distribution_collapse(reverse_dictionary, 'rv')
+					allele_object.set_fwarray(forward_distribution)
+					allele_object.set_rvarray(reverse_distribution)
 			self.zygosity_state = self.predict_zygstate()
 
 			##
@@ -580,8 +618,6 @@ class AlleleGenotyping:
 				while fod_failstate:
 					fod_failstate, cag_indexes = self.peak_detection(allele, target_distro, 1, 'CAGHet', fod_recall=True)
 
-				allele.set_fodcag(cag_indexes)
-
 		########################
 		## Homozygous for CCG ##
 		########################
@@ -697,6 +733,13 @@ class AlleleGenotyping:
 		## Secondary Allele
 		secondary_dsp_ccg = secondary_allele.get_ccg(); secondary_fod_ccg = secondary_allele.get_fodccg()
 		secondary_dsp_cag = secondary_allele.get_cag(); secondary_fod_cag = secondary_allele.get_fodcag()
+
+		print '\n Primary::'
+		print 'dsp: ', primary_dsp_cag, primary_dsp_ccg
+		print 'fod: ', primary_fod_cag, primary_fod_ccg
+		print '\n Secondary::'
+		print 'dsp: ', secondary_dsp_cag, secondary_dsp_ccg
+		print 'fod: ', secondary_fod_cag, secondary_fod_ccg
 
 		##
 		## Double check fod peaks

@@ -311,13 +311,13 @@ class ScaleHD_ALSPAC:
 				#####################################################
 				## Stage five!! Genotype distributions/SNP Calling ##
 				#####################################################
-				try:
-					self.allele_genotyping(current_seqpair, invalid_data)
-				except Exception, e:
-					current_seqpair.set_exceptionraised('Genotype')
-					self.append_report(current_seqpair)
-					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
-					continue
+				#try:
+				self.allele_genotyping(current_seqpair, invalid_data)
+				#except Exception, e:
+				#	current_seqpair.set_exceptionraised('Genotype')
+				#	self.append_report(current_seqpair)
+				#	log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
+				#	continue
 				#######################################
 				## Stage six!! Bayesian Genotyping.. ##
 				#######################################
@@ -367,7 +367,7 @@ class ScaleHD_ALSPAC:
 		alignment_flag = self.instance_params.config_dict['instance_flags']['@sequence_alignment']
 		if alignment_flag == 'True':
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'Scanning for atypical alleles..'))
-			sequencepair_object.set_atypicalreport(align.ScanAtypical(sequencepair_object, self.instance_params).get_atypicalreport())
+			align.ScanAtypical(sequencepair_object, self.instance_params)
 			atypical_count = sequencepair_object.get_atypicalcount()
 			if atypical_count != 0:
 				log.info('{}{}{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'Scanning complete! ',str(sequencepair_object.get_atypicalcount()),' atypical allele(s) present.'))
