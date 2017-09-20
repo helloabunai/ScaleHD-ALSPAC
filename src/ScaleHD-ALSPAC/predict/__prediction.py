@@ -734,13 +734,6 @@ class AlleleGenotyping:
 		secondary_dsp_ccg = secondary_allele.get_ccg(); secondary_fod_ccg = secondary_allele.get_fodccg()
 		secondary_dsp_cag = secondary_allele.get_cag(); secondary_fod_cag = secondary_allele.get_fodcag()
 
-		print '\n Primary::'
-		print 'dsp: ', primary_dsp_cag, primary_dsp_ccg
-		print 'fod: ', primary_fod_cag, primary_fod_ccg
-		print '\n Secondary::'
-		print 'dsp: ', secondary_dsp_cag, secondary_dsp_ccg
-		print 'fod: ', secondary_fod_cag, secondary_fod_ccg
-
 		##
 		## Double check fod peaks
 		def dimension_checker(input_list):
