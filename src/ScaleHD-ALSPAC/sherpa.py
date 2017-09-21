@@ -385,14 +385,17 @@ class ScaleHD_ALSPAC:
 		fw_xml = generate_atypical_xml(sequencepair_object.get_label(), individual_allele, atypical_index_path, 'fw')
 		rv_xml = generate_atypical_xml(sequencepair_object.get_label(), individual_allele, atypical_index_path, 'rv')
 
-		fwfasta = generate_reference(fw_xml, atypical_index_path, self.reference_indexes, 'fw')
-		rvfasta = generate_reference(rv_xml, atypical_index_path, self.reference_indexes, 'rv')
+		##
+		## ALSPAC
+		## Utilise less information for indexing issue with atypicals
+		fwfasta = generate_reference(fw_xml, atypical_index_path)
+		rvfasta = generate_reference(rv_xml, atypical_index_path)
 
-		fwidx = align.ReferenceIndex(fwfasta, atypical_index_path).get_index_path()
-		rvidx = align.ReferenceIndex(rvfasta, atypical_index_path).get_index_path()
+		fwidx, fw_encoder = align.ReferenceIndex(fwfasta, atypical_index_path).get_index_path()
+		rvidx, rv_encoder = align.ReferenceIndex(rvfasta, atypical_index_path).get_index_path()
 
-		individual_allele.set_fwidx(fwidx)
-		individual_allele.set_rvidx(rvidx)
+		individual_allele.set_fwidx(fwidx); individual_allele.set_fwlabel_encoder(fw_encoder)
+		individual_allele.set_rvidx(rvidx); individual_allele.set_rvlabel_encoder(rv_encoder)
 
 		log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Re-aligning to custom reference..'))
 		align.SeqAlign(sequencepair_object, self.instance_params, individual_allele)

@@ -95,6 +95,7 @@ def extract_repeat_distributions(sample_root, alignment_outdir, alignment_outfil
 	## Return dictionary of repeat count distribution (hashed)
 	os.remove(raw_repeat_distribution)
 	os.remove(alignment_outfile)
+
 	return csv_path, hashed_data, sorted_assembly
 
 class SeqAlign:
@@ -242,6 +243,9 @@ class SeqAlign:
 		unpaired_pairing_penalty    :: -U <INT>      :: penalty for unpaired read pair [17]
 		"""
 
+		##
+		## ALSPAC atypical realignment fuckery
+		if type(reference_index) == tuple: reference_index = reference_index[0]
 		read_group_header = '@RG\tID:{}\tSM:{}\tPL:{}\tLB:{}'.format('ScaleHD-ALN',self.sequencepair_object.get_label(),
 																	 'ILLUMINA',self.instance_params.config_dict['JobName'])
 		bwa_process = subprocess.Popen(['bwa', 'mem', '-t', str(THREADS), '-k', min_seed_length,

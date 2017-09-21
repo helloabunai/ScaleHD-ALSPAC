@@ -33,7 +33,6 @@ from ..__backend import Colour as clr
 
 class AlleleGenotyping:
 	def __init__(self, sequencepair_object, instance_params, training_data, atypical_logic=None, padded_target=None):
-
 		##
 		## Allele objects and instance data
 		self.sequencepair_object = sequencepair_object
@@ -64,7 +63,6 @@ class AlleleGenotyping:
 			log.warn('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, '1+ allele(s) failed peak validation. Precision not guaranteed.'))
 			self.warning_triggered = True
 			self.sequencepair_object.set_peakinspection_warning(True)
-		#self.n_align_dist()
 		self.calculate_score()
 
 		##
@@ -75,8 +73,6 @@ class AlleleGenotyping:
 		## Continue with graphs/results with fixed output
 		self.render_graphs()
 		self.set_report()
-
-
 
 	def build_zygosity_model(self):
 		"""
@@ -171,7 +167,7 @@ class AlleleGenotyping:
 		unlabelled_distro = np.array(placeholder_array)
 		return unlabelled_distro
 
-	def distribution_collapse(self, hashed_dictionary, dir):
+	def distribution_collapse(self, hashed_dictionary, dir, encoders, allele_status):
 		"""
 		Function to take a full 200x20 array (struc: CAG1-200,CCG1 -- CAG1-200CCG2 -- etc CCG20)
 		and aggregate all CAG values for each CCG
@@ -179,28 +175,36 @@ class AlleleGenotyping:
 		:param dir: direction of distribution (fw reads or rv reads)
 		:return: 1x20D np(array)
 		"""
-
 		##
 		## ALSPAC hashed dictionary requires to be turned into a functional distribution
 		## Utilise our label encoder for ALSPAC obfuscation
 		## Dictionaries are immutable (pop fucks everything up), make a new (sorted) one for unhashed
 		encoder = None
-		if dir == 'fw': encoder = self.sequencepair_object.get_fwlabel_encoder()
-		if dir == 'rv': encoder = self.sequencepair_object.get_rvlabel_encoder()
+		if dir == 'fw': encoder = encoders[0]
+		if dir == 'rv': encoder = encoders[1]
 		unhashed_dictionary = {}
 		for k,v in hashed_dictionary.iteritems():
 			unhashed = encoder.inverse_transform(np.int64(k))
 			unhashed_dictionary[unhashed] = v
 
 		##
-		##TODO investigate how atypical realignment references will fuck this up...
 		## Take unencrypted dictionary and sort if via 2D lambda function
 		## i.e. lambda x[0] = sort by CCG (i.e. CAG_1_1_CCG_2).split('_')[3]
 		## then sort again by lambda x[1] = sort by CAG (i.e. CAG_1_1_CCG_2).split('_')[0]
-		unhashed_sorted = collections.OrderedDict(sorted(unhashed_dictionary.items(),
-														 key=lambda x: (int(x[0].split('_')[3]),
-																		int(x[0].split('_')[0]))))
-
+		if allele_status == 'typical':
+			unhashed_sorted = collections.OrderedDict(sorted(unhashed_dictionary.items(),
+															 key=lambda x: (int(x[0].split('_')[3]),
+																			int(x[0].split('_')[0]))))
+		##
+		## Atypical alleles require cleaning of errorneous labels and sorting via different indices
+		if allele_status == 'atypical':
+			cleaned_unhashed = {}
+			for x,y in unhashed_dictionary.iteritems():
+				if not len(x.split('_')) == 5:
+					cleaned_unhashed[x] = y
+			unhashed_sorted = collections.OrderedDict(sorted(cleaned_unhashed.items(),
+															 key=lambda x: (int(x[0].split('_')[6]),
+																			int(x[0].split('_')[5]))))
 		##
 		## Convert unencrypted, sorted dictionary values into distribution list
 		## Allows implementation with existing genotyping workflow with no changes
@@ -372,29 +376,33 @@ class AlleleGenotyping:
 			## Stage one -- CCG Zygosity ##
 			###############################
 			## ALSPAC hashed dictionaries
-			forward_dictionary = self.sequencepair_object.get_fwdict()
-			reverse_dictionary = self.sequencepair_object.get_rvdict()
 
 			## Typical allele
 			if allele_object.get_allelestatus() == 'Typical':
-				self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw')
-				self.reverse_aggregate, reverse_distribution = self.distribution_collapse(reverse_dictionary, 'rv')
+				forward_dictionary = self.sequencepair_object.get_fwdict()
+				reverse_dictionary = self.sequencepair_object.get_rvdict()
+				encoders = [self.sequencepair_object.get_fwlabel_encoder(), self.sequencepair_object.get_rvlabel_encoder()]
+				self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw', encoders, 'typical')
+				self.reverse_aggregate, reverse_distribution = self.distribution_collapse(reverse_dictionary, 'rv', encoders, 'typical')
 				allele_object.set_fwarray(forward_distribution)
 				allele_object.set_rvarray(reverse_distribution)
 
 			## Atypical allele
 			## TODO atypical allele realignment ref may fuck shit up, investigate
 			if allele_object.get_allelestatus() == 'Atypical':
+				forward_dictionary = allele_object.get_fwdict()
+				reverse_dictionary = allele_object.get_rvdict()
+				encoders = [allele_object.get_fwlabel_encoder(), allele_object.get_rvlabel_encoder()]
 				## Data has been realigned to custom reference
 				if not self.invalid_data:
-					self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw')
-					self.reverse_aggregate = self.reverse_distribution
+					self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw', encoders, 'atypical')
+					self.reverse_aggregate, reverse_distribution = self.distribution_collapse(reverse_dictionary, 'rv', encoders, 'atypical')
 					allele_object.set_fwarray(forward_distribution)
 					allele_object.set_rvarray(self.reverse_aggregate)
 				## Data has not been realigned -- brute force genotyping
 				if self.invalid_data:
-					self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw')
-					self.reverse_aggregate, reverse_distribution = self.distribution_collapse(reverse_dictionary, 'rv')
+					self.forward_aggregate, forward_distribution = self.distribution_collapse(forward_dictionary, 'fw', encoders, 'atypical')
+					self.reverse_aggregate, reverse_distribution = self.distribution_collapse(reverse_dictionary, 'rv', encoders, 'atypical')
 					allele_object.set_fwarray(forward_distribution)
 					allele_object.set_rvarray(reverse_distribution)
 			self.zygosity_state = self.predict_zygstate()
@@ -617,7 +625,6 @@ class AlleleGenotyping:
 			for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
 				distribution_split = self.split_cag_target(allele.get_fwarray())
 				target_distro = distribution_split['CCG{}'.format(allele.get_ccg())]
-
 				if self.zygosity_state == 'HOMO+':
 					for i in range(0, len(target_distro)):
 						if i != allele.get_cag() - 1:
@@ -1029,39 +1036,6 @@ class AlleleGenotyping:
 
 		return self.pass_vld
 
-	# Commented out for ALSPAC (for the time being)
-	# def n_align_dist(self):
-	#
-	# 	"""
-	# 	Function to align alleles of the current sample to the same n-point as any previous alleles processed
-	# 	in this run. Append the padded distributions to the same CSV file for in-depth somatic mosaicism
-	# 	studies..
-	# 	:return: fuck all
-	# 	"""
-	#
-	# 	##TODO alspac n-alignment?? hmm??
-	#
-	# 	##
-	# 	## For each allele in the sample get the target CCG distribution
-	# 	## Pad it so that N (the determined genotype) is at the same index in the output file
-	# 	## output the padded distribution and close the file
-	# 	for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
-	# 		distribution_split = self.split_cag_target(allele.get_fwarray())
-	# 		target = distribution_split['CCG{}'.format(allele.get_ccg())]
-	# 		fix_target = ','.join(['%.5f' % num for num in target])
-	#
-	# 		anchor = 203
-	# 		anchor_port = anchor - allele.get_cag()
-	# 		anchor_starboard = anchor_port + 200
-	# 		left_buffer = '-,'*anchor_port
-	# 		right_buffer = '-,'*(403-anchor_starboard)
-	# 		padded_dist = left_buffer+fix_target+right_buffer[:-1]
-	# 		sample_output = '{},{},CCG{},{}\n'.format(self.sequencepair_object.get_label(), allele.get_header(),
-	# 												  allele.get_ccg(), padded_dist)
-	#
-	# 		with open(self.padded_target, 'a') as distfi: distfi.write(sample_output)
-	# 		distfi.close()
-
 	def render_graphs(self):
 
 		##
@@ -1077,8 +1051,6 @@ class AlleleGenotyping:
 
 		##
 		## ALSPAC sum bin for 31+ alleles...
-		np.set_printoptions(threshold=np.nan)
-
 		def graph_subfunction(x, y, axis_labels, xticks, peak_index, predict_path, file_handle, prefix='', graph_type=None, neg_anchor=False):
 			x = np.linspace(x[0],x[1],x[2])
 			plt.figure(figsize=(10, 6)); plt.title(prefix+self.sequencepair_object.get_label())
@@ -1220,9 +1192,8 @@ class AlleleGenotyping:
 					peak_filename = 'CCG{}-CAGDetection.pdf'.format(allele.get_fodccg())
 					peak_prefix = '(CCG{}) '.format(allele.get_fodccg())
 				peak_graph_path = os.path.join(predpath, peak_filename)
-				# graph_subfunction([0, 199, 200], target_distro, ['CAG Value', 'Read Count'],
-				# 				  ([1, 200, 50], [1, 200], [0,50,100,150,200]), [np.int64(allele.get_fodcag() - 1)],
-				# 				  predpath, peak_filename, prefix=peak_prefix)
+				##
+				## ALSPAC rendering of graph differs from normal
 				graph_subfunction([0, 35, 36], target_distro, ['CAG Value', 'Read Count'],
 								  ([-1, 40, 5], [-1, 40], [-1,5,10,15,20,25,30,35,40]), [np.int64(allele.get_fodcag()-1)],
 								  predpath, peak_filename, prefix=peak_prefix)
@@ -1249,7 +1220,7 @@ class AlleleGenotyping:
 				##
 				## Merge 'allele sample' into one page
 				ccg_val = allele.get_fodccg()
-				if allele.get_unrewrittenccg(): hplus = True
+				if allele.get_unrewrittenccg() or allele.get_rewrittenccg(): hplus = True
 				else: hplus = False
 				merged_graph = pagemerge_subfunction(temp_graphs, predpath, ccg_val, hplus=hplus)
 				hetero_graphs.append(merged_graph)
@@ -1274,6 +1245,15 @@ class AlleleGenotyping:
 			altpeak_filename = 'CCG{}-Peak.pdf'.format(self.sequencepair_object.get_primaryallele().get_fodccg())
 			ccg_peaks = [int(pri_fodccg),int(sec_fodccg)]; cag_peaks = [int(pri_fodcag),int(sec_fodcag)]
 			distribution_split = self.split_cag_target(pri_fwarray); target_distro = distribution_split[target_ccg]
+
+			##
+			##ALSPAC alter the distribution data present for allele masking
+			normal_split = target_distro[:31]
+			expanded_split = target_distro[31:]
+			expansion_sum = np.sum(expanded_split)
+			normal_split[-1] = expansion_sum
+			target_distro = np.concatenate((normal_split, np.asarray([0, 0, 0, 0, 0])))
+
 			## Subslice data
 			pri_cag = self.sequencepair_object.get_primaryallele().get_cag()
 			sec_cag = self.sequencepair_object.get_secondaryallele().get_cag()
@@ -1289,9 +1269,11 @@ class AlleleGenotyping:
 			## Append merged intro_ccg to homozygous list, append line/bar peak to page list
 			graph_subfunction([0, 21, 20], pri_rvarray, ['CCG Value', 'Read Count'], ([1, 20, 1], [1, 20], range(1,21)),
 							  ccg_peaks, predpath, 'CCGDetection.pdf', graph_type='bar', neg_anchor=True); plt.close()
-			graph_subfunction([0, 199, 200], target_distro, ['CAG Value', 'Read Count'],
-							  ([1, 200, 50], [1, 200], [0,50,100,150,200]), cag_peaks, predpath,
-							  peak_filename, prefix=peak_prefix); plt.close()
+			##
+			## ALSPAC rendering of graph differs from normal
+			graph_subfunction([0, 35, 36], target_distro, ['CAG Value', 'Read Count'],
+							  ([-1, 40, 5], [-1, 40], [-1, 5, 10, 15, 20, 25, 30, 35, 40]),
+							  cag_peaks, predpath, peak_filename, prefix=peak_prefix); plt.close()
 			graph_subfunction([0, len(sub)-1, len(sub)], sub, ['CAG Value', 'Read Count'],
 							  ([1, len(sub), 1], [1, len(sub)], slice_range), cag_peaks, predpath, altpeak_filename,
 							  prefix=peak_prefix, graph_type='bar'); plt.close()

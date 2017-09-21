@@ -22,6 +22,7 @@ from collections import defaultdict
 from xml.etree import cElementTree
 from lxml import etree
 from reportlab.pdfgen import canvas
+from Bio import SeqIO
 
 class Colour:
 
@@ -767,24 +768,14 @@ def generate_atypical_xml(label, allele_object, index_path, direction):
 
 	return atypical_path
 
-def generate_reference(input_xml, index_path, ref_indexes, direction):
+def generate_reference(input_xml, index_path):
 
 	##TODO docstring
 
 	label = input_xml.split('/')[-1].split('.')[0]
 	target_output = os.path.join(index_path, label + '.fa')
-	temp_output = os.path.join(index_path, label + '_concat.fa')
-	gen_process = subprocess.Popen(['generatr', '-i', input_xml, '-o', target_output], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	gen_process = subprocess.Popen(['generatr', '-s', '-i', input_xml, '-o', target_output], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	gen_process.wait()
-
-	##
-	## Join typical and atypical reference into one file
-	if direction == 'fw':
-		toutfi = open(temp_output, 'w')
-		cat_process = subprocess.Popen(['cat', target_output, ref_indexes[0]], stdout=toutfi, stderr=subprocess.PIPE)
-		cat_process.wait()
-		toutfi.close()
-		target_output = temp_output
 
 	return target_output
 

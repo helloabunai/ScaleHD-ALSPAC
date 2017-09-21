@@ -205,6 +205,9 @@ class SequenceSample:
 
 class IndividualAllele:
 	def __init__(self):
+		self.fw_label_encoder = None
+		self.rv_label_encoder = None
+
 		self.header = ''
 		self.validation = False
 		self.allele_genotype = ''
@@ -272,6 +275,9 @@ class IndividualAllele:
 
 	##
 	## Setters
+	def set_fwlabel_encoder(self, fw_le): self.fw_label_encoder = fw_le
+	def set_rvlabel_encoder(self, rv_le): self.rv_label_encoder = rv_le
+
 	def set_header(self, header): self.header = header
 	def set_validation(self, validate): self.validation = validate
 	def set_allelegenotype(self, genotype): self.allele_genotype = genotype
@@ -339,6 +345,9 @@ class IndividualAllele:
 
 	##
 	## Getters
+	def get_fwlabel_encoder(self): return self.fw_label_encoder
+	def get_rvlabel_encoder(self): return self.rv_label_encoder
+
 	def get_header(self): return self.header
 	def get_validation(self): return self.validation
 	def get_allelegenotype(self): return self.allele_genotype
