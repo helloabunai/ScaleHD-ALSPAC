@@ -491,9 +491,12 @@ class AlleleGenotyping:
 						additional_context = 5
 				## the percentage we should remove errorneous reads by
 				## should differ based on the context of n's read count
-				if 0 < self.reverse_aggregate[allele_object.get_ccg()-1] <= 6000: removal_context = 85
-				elif 6000 <= self.reverse_aggregate[allele_object.get_ccg()-1] <= 12000: removal_context = 75
-				else: removal_context = 65
+				if 0 < self.reverse_aggregate[allele_object.get_ccg()-1] <= 6000:
+					removal_context = 65
+				elif 6000 <= self.reverse_aggregate[allele_object.get_ccg()-1] <= 12000:
+					removal_context = 75
+				else:
+					removal_context = 85
 
 				## actual cleanup stage
 				for i in range(0, len(self.reverse_aggregate)):
@@ -1506,9 +1509,11 @@ class AlleleGenotyping:
 
 				##
 				## If reflabel CAG and FOD CAG differ.. no confidence
+				## ALSPAC filter the label split, just incase
 				label_split = allele.get_reflabel().split('_')[0]
+				label_split_digits = ''.join(filter(str.isdigit, label_split))
 				if allele.get_allelestatus() == 'Atypical':
-					if not np.isclose([int(allele.get_fodcag())],[int(label_split)],atol=1):
+					if not np.isclose([int(allele.get_fodcag())],[int(label_split_digits)],atol=1):
 						allele_confidence = 0; penfi.write('{}, {}\n'.format('Atypical DSP:FOD inconsistency','-100'))
 
 				##
