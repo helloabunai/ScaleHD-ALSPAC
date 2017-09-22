@@ -1033,7 +1033,7 @@ class AlleleGenotyping:
 
 			##
 			## ALSPAC mask allele size
-			if int(allele.get_reflabel().split('_')[0]) > 31:
+			if int(labelled_cag) >= 31:
 				allele.set_referencelabel('{}_{}_{}_{}_{}'.format('31+', novel_caacag, novel_ccgcca,
 																  allele.get_fodccg(), allele.get_cct()))
 				allele.set_cagval(31); allele.set_fodcag(31)
