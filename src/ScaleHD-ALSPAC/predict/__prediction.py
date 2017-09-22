@@ -986,19 +986,26 @@ class AlleleGenotyping:
 			allele.set_allelegenotype('{}_{}_{}_{}_{}'.format(allele.get_fodcag(), novel_caacag,
 															  novel_ccgcca, allele.get_fodccg(),
 															  allele.get_cct()))
-			##
-			## Check DSP generated allele label vs FOD results
-			if int(allele.get_reflabel().split('_')[3]) != int(allele.get_fodccg()):
-				allele.set_referencelabel('{}_{}_{}_{}_{}'.format(allele.get_fodcag(), novel_caacag,
-															  novel_ccgcca, allele.get_fodccg(),
-															  allele.get_cct()))
-				allele.set_fodoverwrite(True)
-			if int(allele.get_reflabel().split('_')[0]) != int(allele.get_fodcag()):
-				allele.set_referencelabel('{}_{}_{}_{}_{}'.format(allele.get_fodcag(), novel_caacag,
-															  novel_ccgcca, allele.get_fodccg(),
-															  allele.get_cct()))
-				allele.set_fodoverwrite(True)
 
+			##
+			## ALSPAC masking check
+			## Check DSP generated allele label vs FOD results
+			try:
+				labelled_ccg = int(allele.get_reflabel().split('_')[3])
+				labelled_cag = int(allele.get_reflabel().split('_')[0])
+			except ValueError:
+				labelled_ccg = ''.join(filter(str.isdigit, allele.get_reflabel().split('_')[3]))
+				labelled_cag = ''.join(filter(str.isdigit, allele.get_reflabel().split('_')[0]))
+			if int(labelled_ccg) != int(allele.get_fodccg()):
+				allele.set_referencelabel('{}_{}_{}_{}_{}'.format(allele.get_fodcag(), novel_caacag,
+															  novel_ccgcca, allele.get_fodccg(),
+															  allele.get_cct()))
+				allele.set_fodoverwrite(True)
+			if int(labelled_cag) != int(allele.get_fodcag()):
+				allele.set_referencelabel('{}_{}_{}_{}_{}'.format(allele.get_fodcag(), novel_caacag,
+															  novel_ccgcca, allele.get_fodccg(),
+															  allele.get_cct()))
+				allele.set_fodoverwrite(True)
 
 			##
 			## If failed, write intermediate data to report
