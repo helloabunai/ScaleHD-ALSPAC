@@ -160,12 +160,12 @@ class ScaleHD_ALSPAC:
 		self.padded_distributions = os.path.join(self.instance_rundir, 'AlignedDistributions.csv')
 		self.header = '{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
 					  '{},{},{},{},{},{},{},{},{},{},{},{},{},' \
-					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
 			'SampleName', '' ,'Primary GTYPE', 'Status', 'Clipped?', 'Map (FW)', 'Map% (FW)', 'Map (RV)', 'Map% (RV)', 'BSlippage',
 			'Somatic Mosaicism', 'Intervening Sequence', 'Confidence', '', 'Secondary GTYPE', 'Status', 'Clipped?', 'Map (FW)',
 			'Map% (FW)', 'Map (RV)','Map% (RV)', 'BSlippage', 'Somatic Mosaicism', 'Intervening Sequence', 'Confidence',
-			'', 'Exception Raised', 'Homozygous Haplotype', 'Neighbouring Peaks', 'Diminished Peaks', 'Novel Atypical',
-			'Alignment Warning', 'Atypical Alignment Warning', 'CCG Rewritten', 'CCG Zygosity Rewritten',
+			'', 'Exception Raised', 'Homozygous Haplotype', 'Neighbouring Peaks', 'Diminished Peaks', 'Double Expansion',
+			'Novel Atypical', 'Alignment Warning', 'Atypical Alignment Warning', 'CCG Rewritten', 'CCG Zygosity Rewritten',
 			'CCT Uncertainty', 'SVM Failure', 'Differential Confusion', 'Peak Inspection Warning',
 			'Low Distribution Reads', 'Low Peak Reads'
 		)
@@ -478,11 +478,11 @@ class ScaleHD_ALSPAC:
 						 [secondary_allele, 'get_alleleconfidence'], ['NULL', 'NULL'],
 						 [sequencepair_object, 'get_exceptionraised'],[sequencepair_object, 'get_homozygoushaplotype'],
 						 [sequencepair_object, 'get_neighbouringpeaks'], [sequencepair_object, 'get_diminishedpeaks'],
-						 [sequencepair_object, 'get_novel_atypical_structure'], [sequencepair_object, 'get_alignmentwarning'],
-						 [sequencepair_object, 'get_atypical_alignmentwarning'], [sequencepair_object, 'get_atypical_ccgrewrite'],
-						 [sequencepair_object, 'get_atypical_zygrewrite'], [sequencepair_object, 'get_cctuncertainty'],
-						 [sequencepair_object, 'get_peakinspection_warning'], [sequencepair_object, 'get_svm_failure'],
-						 [sequencepair_object, 'get_differential_confusion'],
+						 [sequencepair_object, 'get_double_expansion'], [sequencepair_object, 'get_novel_atypical_structure'],
+						 [sequencepair_object, 'get_alignmentwarning'], [sequencepair_object, 'get_atypical_alignmentwarning'],
+						 [sequencepair_object, 'get_atypical_ccgrewrite'], [sequencepair_object, 'get_atypical_zygrewrite'],
+						 [sequencepair_object, 'get_cctuncertainty'], [sequencepair_object, 'get_peakinspection_warning'],
+						 [sequencepair_object, 'get_svm_failure'], [sequencepair_object, 'get_differential_confusion'],
 						 [sequencepair_object, 'get_distribution_readcount_warning'],
 						 [sequencepair_object, 'get_fatalreadallele']]
 

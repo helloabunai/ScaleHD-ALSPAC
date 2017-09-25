@@ -1268,8 +1268,17 @@ class AlleleGenotyping:
 			pri_cag = self.sequencepair_object.get_primaryallele().get_cag()
 			sec_cag = self.sequencepair_object.get_secondaryallele().get_cag()
 			upper = max([pri_cag, sec_cag])
-			if self.sequencepair_object.get_homozygoushaplotype(): lower = upper
-			else: lower = max(n for n in [pri_cag, sec_cag] if n != upper)
+			if self.sequencepair_object.get_homozygoushaplotype():
+				lower = upper
+			else:
+				try:
+					lower = max(n for n in [pri_cag, sec_cag] if n != upper)
+				except ValueError:
+					##
+					## ALSPAC both peaks on a CCG homozygous are > 31 and have been clipped
+					## hence there is no 'lower' value here; both are 31. Raise flag
+					self.sequencepair_object.set_double_expansion(True)
+					lower = upper
 			sub = target_distro[lower-6:upper+5]
 			slice_range = range(lower-4,upper+7)
 
