@@ -62,7 +62,7 @@ class SequenceSample:
 		self.distribution_readcount_warning = False
 		self.novel_atypical_structure = False
 		self.differential_confusion = False
-		self.double_expansion = True
+		self.double_expansion = False
 		self.original_fqcount = 0
 		self.subsampled_fqcount = 0
 

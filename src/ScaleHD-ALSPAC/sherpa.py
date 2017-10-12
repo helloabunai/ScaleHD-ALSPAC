@@ -311,13 +311,13 @@ class ScaleHD_ALSPAC:
 				#####################################################
 				## Stage five!! Genotype distributions/SNP Calling ##
 				#####################################################
-				#try:
-				self.allele_genotyping(current_seqpair, invalid_data)
-				#except Exception, e:
-				#	current_seqpair.set_exceptionraised('Genotype')
-				#	self.append_report(current_seqpair)
-				#	log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
-				#	continue
+				try:
+					self.allele_genotyping(current_seqpair, invalid_data)
+				except Exception, e:
+					current_seqpair.set_exceptionraised('Genotype')
+					self.append_report(current_seqpair)
+					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
+					continue
 				#######################################
 				## Stage six!! Bayesian Genotyping.. ##
 				#######################################
