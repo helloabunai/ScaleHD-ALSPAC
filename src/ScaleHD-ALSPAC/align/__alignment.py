@@ -128,7 +128,6 @@ class SeqAlign:
 			target_outfi = open(target_output, 'w')
 			seqtk_process = subprocess.Popen(['seqtk', 'sample', '-s100', target_file, str(self.subsample_flag)], stdout=target_outfi)
 			seqtk_process.wait(); target_outfi.close()
-			os.remove(target_file)
 			#self.sequencepair_object.set_avoidfurthersubsample(True) -- not required currently
 			return target_output
 		else:
@@ -157,8 +156,12 @@ class SeqAlign:
 			elif 100000 > awk_output > 50000: self.subsample_flag = 0.4
 			elif 50000 > awk_output > 25000: self.subsample_flag = 0.6
 
-		forward_reads = self.subsample_input(self.sequencepair_object.get_fwreads(), 'R1')
-		reverse_reads = self.subsample_input(self.sequencepair_object.get_rvreads(), 'R2')
+		if not self.broad_flag:
+			forward_reads = self.subsample_input(self.sequencepair_object.get_fwreads(), 'R1')
+			reverse_reads = self.subsample_input(self.sequencepair_object.get_rvreads(), 'R2')
+		else:
+			forward_reads = self.sequencepair_object.get_fwreads()
+			reverse_reads = self.sequencepair_object.get_rvreads()
 		self.sequencepair_object.set_fwreads(forward_reads)
 		self.sequencepair_object.set_rvreads(reverse_reads)
 
@@ -194,6 +197,15 @@ class SeqAlign:
 			self.individual_allele.set_rvalnpcnt(rvmapped_pcnt)
 			self.individual_allele.set_fwalncount(fwmapped_count)
 			self.individual_allele.set_rvalncount(rvmapped_count)
+
+		##
+		## Remove subsampled FQ files..
+		if not self.broad_flag:
+			if not self.individual_allele:
+				pass
+			else:
+				os.remove(forward_reads)
+				os.remove(reverse_reads)
 
 	def execute_alignment(self, reference_index, target_fqfile, feedback_string, io_index, typical_flag):
 
