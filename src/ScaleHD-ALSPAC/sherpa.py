@@ -305,9 +305,14 @@ class ScaleHD_ALSPAC:
 						allele.set_rvdist(current_seqpair.get_rvdist())
 						allele.set_rvassembly(current_seqpair.get_rvassembly())
 
-				## tidy up seq files
-				for seqfi in [current_seqpair.get_fwreads(), current_seqpair.get_rvreads()]:
-					os.remove(seqfi)
+				## tidy up subsampled seq files
+				if self.instance_params.config_dict['instance_flags']['@quality_control']:
+					for seqfi in [current_seqpair.get_fwreads(), current_seqpair.get_rvreads()]:
+						if '_SUB_R' in seqfi:
+							try:
+								os.remove(seqfi)
+							except OSError:
+								pass
 				#####################################################
 				## Stage five!! Genotype distributions/SNP Calling ##
 				#####################################################
