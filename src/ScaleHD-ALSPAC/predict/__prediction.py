@@ -1277,7 +1277,6 @@ class AlleleGenotyping:
 					##
 					## ALSPAC both peaks on a CCG homozygous are > 31 and have been clipped
 					## hence there is no 'lower' value here; both are 31. Raise flag
-					##todo investigate this on samples where it was true but not really...
 					self.sequencepair_object.set_double_expansion(True)
 					lower = upper
 
