@@ -1,5 +1,5 @@
 #/usr/bin/python
-__version__ = 0.250
+__version__ = 0.251
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -29,7 +29,7 @@ def purge_alignment_map(alignment_outdir, alignment_outfile):
 	prealn_count = premapped_pcnt[0].split(' +')[0]; pre_purge = (prealn_count, prealn_pcnt)
 
 	## purge for uniquely mapped reads
-	view_subprocess = subprocess.Popen(['samtools', 'view', '-q', '5', '-b', '-@', str(THREADS), alignment_outfile], stdout=purged_file)
+	view_subprocess = subprocess.Popen(['samtools', 'view', '-q', '1', '-b', '-@', str(THREADS), alignment_outfile], stdout=purged_file)
 	view_subprocess.wait()
 	purged_file.close()
 

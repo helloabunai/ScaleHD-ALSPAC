@@ -1,7 +1,7 @@
 from __future__ import division
 
 #/usr/bin/python
-__version__ = 0.250
+__version__ = 0.251
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -218,7 +218,7 @@ class ScaleHD_ALSPAC:
 		##
 		## Executing the workflow for this SHD instance
 		## Ensure there are even amount of files for forward/reverse sequence pairings
-		data_pairs = sequence_pairings(instance_inputdata, self.instance_rundir, 'sequence')
+		data_pairs = sequence_pairings(instance_inputdata, self.instance_rundir)
 		for i in range(len(data_pairs)):
 			for seqpair_lbl, seqpair_dat in data_pairs[i].iteritems():
 
