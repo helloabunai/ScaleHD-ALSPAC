@@ -662,6 +662,9 @@ class ScanAtypical:
 		for allele in [primary_allele, secondary_allele]:
 			orig_ccg = allele['OriginalReference'].split('_')[3]
 			curr_ccg = allele['EstimatedCCG']
+			## if original ref sect isn't string
+			if not type(orig_ccg) == int:
+				orig_ccg = int(filter(str.isdigit, orig_ccg))
 			temp_zyg.append(orig_ccg); temp_curr.append(curr_ccg)
 			if allele['Status'] == 'Atypical':
 				if int(orig_ccg) != int(curr_ccg):

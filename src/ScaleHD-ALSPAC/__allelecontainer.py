@@ -3,24 +3,23 @@ import errno
 
 class SequenceSample:
 	def __init__(self):
-		self.fw_label_encoder = None
-		self.rv_label_encoder = None
-
 		self.sample_label = ''
 		self.instance_path = ''
 		self.sample_qcpath = ''
 		self.sample_alignpath = ''
 		self.sample_predictpath = ''
-		self.sample_bayespath = ''
 		self.enshrine_flag = False
 		self.subsample_flag = False
 		self.broad_flag = False
+		self.group_flag = False
 		self.avoid_furthersubsample = False
 		self.total_seqreads = 0
 		self.fwalnpcnt = 0.0
 		self.rvalnpcnt = 0.0
 		self.fwalncount = 0
 		self.rvalncount = 0
+		self.fwalnrmvd = 0
+		self.rvalnrmvd = 0
 
 		self.forward_index = ''
 		self.reverse_index = ''
@@ -30,8 +29,6 @@ class SequenceSample:
 		self.reverse_assembly = ''
 		self.forward_distribution = []
 		self.reverse_distribution = []
-		self.forward_dictionary = {}
-		self.reverse_dictionary = {}
 
 		self.trim_report = []
 		self.align_report = []
@@ -62,31 +59,28 @@ class SequenceSample:
 		self.distribution_readcount_warning = False
 		self.novel_atypical_structure = False
 		self.differential_confusion = False
-		self.double_expansion = False
 		self.original_fqcount = 0
 		self.subsampled_fqcount = 0
 
-
 	##
 	## Setters
-	def set_fwlabel_encoder(self, fw_le): self.fw_label_encoder = fw_le
-	def set_rvlabel_encoder(self, rv_le): self.rv_label_encoder = rv_le
-
 	def set_label(self, label): self.sample_label = label
 	def set_instancepath(self, instance_path): self.instance_path = instance_path
 	def set_qcpath(self, qcpath): self.sample_qcpath = qcpath
 	def set_alignpath(self, alignpath):	self.sample_alignpath = alignpath
 	def set_predictpath(self, predictpath):	self.sample_predictpath = predictpath
-	def set_bayespath(self, bayespath):	self.sample_bayespath = bayespath
 	def set_enshrineflag(self, flag): self.enshrine_flag = flag
 	def set_subsampleflag(self, flag): self.subsample_flag = flag
 	def set_broadflag(self, flag): self.broad_flag = flag
+	def set_groupflag(self, flag): self.group_flag = flag
 	def set_avoidfurthersubsample(self, flag): self.avoid_furthersubsample = flag
 	def set_totalseqreads(self, count): self.total_seqreads = count
 	def set_fwalnpcnt(self, pcnt): self.fwalnpcnt = pcnt
 	def set_rvalnpcnt(self, pcnt): self.rvalnpcnt = pcnt
 	def set_fwalncount(self, count): self.fwalncount = count
 	def set_rvalncount(self, count): self.rvalncount = count
+	def set_fwalnrmvd(self, count): self.fwalnrmvd = count
+	def set_rvalnrmvd(self, count): self.rvalnrmvd = count
 
 	def set_fwidx(self, idx): self.forward_index = idx
 	def set_rvidx(self, idx): self.reverse_index = idx
@@ -96,11 +90,10 @@ class SequenceSample:
 	def set_rvassembly(self, assembly): self.reverse_assembly = assembly
 	def set_fwdist(self, dist): self.forward_distribution = dist
 	def set_rvdist(self, dist): self.reverse_distribution = dist
-	def set_fwdict(self, dictn): self.forward_dictionary = dictn
-	def set_rvdict(self, dictn): self.reverse_dictionary = dictn
 
 	def set_trimreport(self, report): self.trim_report = report
 	def set_alignreport(self, report): self.align_report = report
+	def set_atypicalreport(self, report): self.atypical_report = report
 	def set_genotypereport(self, report): self.genotype_report = report
 	def set_snpreport(self, report): self.snp_report = report
 
@@ -127,30 +120,28 @@ class SequenceSample:
 	def set_distribution_readcount_warning(self, state): self.distribution_readcount_warning = state
 	def set_novel_atypical_structure(self, state): self.novel_atypical_structure = state
 	def set_differential_confusion(self, state): self.differential_confusion = state
-	def set_double_expansion(self, state): self.double_expansion = state
 	def set_original_fqcount(self, count): self.original_fqcount = count
 	def set_subsampled_fqcount(self, count): self.subsampled_fqcount = count
 
 	##
 	## Getters
-	def get_fwlabel_encoder(self): return self.fw_label_encoder
-	def get_rvlabel_encoder(self): return self.rv_label_encoder
-
 	def get_label(self): return self.sample_label
 	def get_instancepath(self): return self.instance_path
 	def get_qcpath(self): return self.sample_qcpath
 	def get_alignpath(self): return self.sample_alignpath
 	def get_predictpath(self): return self.sample_predictpath
-	def get_bayespath(self): return self.sample_bayespath
 	def get_enshrineflag(self): return self.enshrine_flag
 	def get_subsampleflag(self): return self.subsample_flag
 	def get_broadflag(self): return self.broad_flag
+	def get_groupflag(self): return self.group_flag
 	def get_avoidfurthersubsample(self): return self.avoid_furthersubsample
 	def get_totalseqreads(self): return self.total_seqreads
 	def get_fwalnpcnt(self): return self.fwalnpcnt
 	def get_rvalnpcnt(self): return self.rvalnpcnt
 	def get_fwalncount(self): return self.fwalncount
 	def get_rvalncount(self): return self.rvalncount
+	def get_fwalnrmvd(self): return self.fwalnrmvd
+	def get_rvalnrmvd(self): return self.rvalnrmvd
 
 	def get_fwidx(self): return self.forward_index
 	def get_rvidx(self): return self.reverse_index
@@ -160,11 +151,10 @@ class SequenceSample:
 	def get_rvassembly(self): return self.reverse_assembly
 	def get_fwdist(self): return self.forward_distribution
 	def get_rvdist(self): return self.reverse_distribution
-	def get_fwdict(self): return self.forward_dictionary
-	def get_rvdict(self): return self.reverse_dictionary
 
 	def get_trimreport(self): return self.trim_report
 	def get_alignreport(self): return self.align_report
+	def get_atypicalreport(self): return self.atypical_report
 	def get_genotypereport(self): return self.genotype_report
 	def get_snpreport(self): return self.snp_report
 
@@ -191,7 +181,6 @@ class SequenceSample:
 	def get_distribution_readcount_warning(self): return self.distribution_readcount_warning
 	def get_novel_atypical_structure(self): return self.novel_atypical_structure
 	def get_differential_confusion(self): return self.differential_confusion
-	def get_double_expansion(self): return self.double_expansion
 	def get_original_fqcount(self): return self.original_fqcount
 	def get_subsampled_fqcount(self): return self.subsampled_fqcount
 
@@ -199,7 +188,7 @@ class SequenceSample:
 	## Functions
 	def generate_sampletree(self):
 
-		for path in [self.sample_qcpath, self.sample_alignpath, self.sample_predictpath, self.sample_bayespath]:
+		for path in [self.sample_qcpath, self.sample_alignpath, self.sample_predictpath]:
 			try:
 				os.makedirs(path)
 			except OSError as exc:
@@ -208,9 +197,6 @@ class SequenceSample:
 
 class IndividualAllele:
 	def __init__(self):
-		self.fw_label_encoder = None
-		self.rv_label_encoder = None
-
 		self.header = ''
 		self.validation = False
 		self.allele_genotype = ''
@@ -239,6 +225,8 @@ class IndividualAllele:
 		self.rvalnpcnt = 0.0
 		self.fwalncount = 0
 		self.rvalncount = 0
+		self.fwalnrmvd = 0
+		self.rvalnrmvd = 0
 
 		self.forward_index = ''
 		self.reverse_index = ''
@@ -246,10 +234,10 @@ class IndividualAllele:
 		self.reverse_assembly = ''
 		self.forward_distribution = []
 		self.reverse_distribution = []
-		self.forward_dict = {}
-		self.reverse_dict = {}
 		self.forward_array = []
 		self.reverse_array = []
+		self.forward_array_original = []
+		self.reverse_array_original = []
 		self.ccg_peak_threshold = 0.0
 		self.cag_peak_threshold = 0.0
 
@@ -274,13 +262,9 @@ class IndividualAllele:
 		self.slippage_overwrite = False
 		self.fatalalignmentwarning = False
 		self.distribution_readcount_warning = False
-		self.allele_clipped = False
 
 	##
 	## Setters
-	def set_fwlabel_encoder(self, fw_le): self.fw_label_encoder = fw_le
-	def set_rvlabel_encoder(self, rv_le): self.rv_label_encoder = rv_le
-
 	def set_header(self, header): self.header = header
 	def set_validation(self, validate): self.validation = validate
 	def set_allelegenotype(self, genotype): self.allele_genotype = genotype
@@ -309,6 +293,8 @@ class IndividualAllele:
 	def set_rvalnpcnt(self, pcnt): self.rvalnpcnt = pcnt
 	def set_fwalncount(self, count): self.fwalncount = count
 	def set_rvalncount(self, count): self.rvalncount = count
+	def set_fwalnrmvd(self, count): self.fwalnrmvd = count
+	def set_rvalnrmvd(self, count): self.rvalnrmvd = count
 
 	def set_fwidx(self, idx): self.forward_index = idx
 	def set_rvidx(self, idx): self.reverse_index = idx
@@ -316,10 +302,10 @@ class IndividualAllele:
 	def set_rvassembly(self, assembly): self.reverse_assembly = assembly
 	def set_fwdist(self, dist): self.forward_distribution = dist
 	def set_rvdist(self, dist): self.reverse_distribution = dist
-	def set_fwdict(self, dictn): self.forward_dict = dictn
-	def set_rvdict(self, dictn): self.reverse_dict = dictn
 	def set_fwarray(self, array): self.forward_array = array
 	def set_rvarray(self, array): self.reverse_array = array
+	def set_fwarray_orig(self, array): self.forward_array_original = array
+	def set_rvarray_orig(self, array): self.reverse_array_original = array
 	def set_ccgthreshold(self, threshold): self.ccg_peak_threshold = threshold
 	def set_cagthreshold(self, threshold): self.cag_peak_threshold = threshold
 
@@ -344,13 +330,9 @@ class IndividualAllele:
 	def set_slippageoverwrite(self, state): self.slippage_overwrite = state
 	def set_fatalalignmentwarning(self, state): self.fatalalignmentwarning = state
 	def set_distribution_readcount_warning(self, state): self.distribution_readcount_warning = state
-	def set_alleleclip(self, state): self.allele_clipped = state
 
 	##
 	## Getters
-	def get_fwlabel_encoder(self): return self.fw_label_encoder
-	def get_rvlabel_encoder(self): return self.rv_label_encoder
-
 	def get_header(self): return self.header
 	def get_validation(self): return self.validation
 	def get_allelegenotype(self): return self.allele_genotype
@@ -379,6 +361,8 @@ class IndividualAllele:
 	def get_rvalnpcnt(self): return self.rvalnpcnt
 	def get_fwalncount(self): return self.fwalncount
 	def get_rvalncount(self): return self.rvalncount
+	def get_fwalnrmvd(self): return self.fwalnrmvd
+	def get_rvalnrmvd(self): return self.rvalnrmvd
 
 	def get_fwidx(self): return self.forward_index
 	def get_rvidx(self): return self.reverse_index
@@ -386,10 +370,10 @@ class IndividualAllele:
 	def get_rvassembly(self): return self.reverse_assembly
 	def get_fwdist(self): return self.forward_distribution
 	def get_rvdist(self): return self.reverse_distribution
-	def get_fwdict(self): return self.forward_dict
-	def get_rvdict(self): return self.reverse_dict
 	def get_fwarray(self): return self.forward_array
 	def get_rvarray(self): return self.reverse_array
+	def get_fwarray_orig(self): return self.forward_array_original
+	def get_rvarray_orig(self): return self.reverse_array_original
 	def get_ccgthreshold(self): return self.ccg_peak_threshold
 	def get_cagthreshold(self): return self.cag_peak_threshold
 
@@ -414,4 +398,3 @@ class IndividualAllele:
 	def get_slippageoverwrite(self): return self.slippage_overwrite
 	def get_fatalalignmentwarning(self): return self.fatalalignmentwarning
 	def get_distribution_readcount_warning(self): return self.distribution_readcount_warning
-	def get_alleleclip(self): return self.allele_clipped

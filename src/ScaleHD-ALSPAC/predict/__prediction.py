@@ -1,7 +1,7 @@
 from __future__ import division
 
 #/usr/bin/python
-__version__ = 0.251
+__version__ = 0.253
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -17,9 +17,9 @@ import subprocess
 import collections
 import numpy as np
 import logging as log
+import seaborn as sns
 matplotlib.use('Agg')
 from sklearn import svm
-import prettyplotlib as ppl
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
 from reportlab.pdfgen import canvas
@@ -49,6 +49,7 @@ class AlleleGenotyping:
 		## Constructs that will be updated with each allele process
 		self.classifier, self.encoder = self.build_zygosity_model()
 		self.allele_flags = {}; self.forward_distribution = None; self.reverse_distribution = None
+		self.primary_original = None; self.secondary_original = None
 		self.forward_aggregate = None; self.reverse_aggregate = None
 		self.expected_zygstate = None; self.zygosity_state = None
 		self.pass_vld = True; self.ccg_sum = []
@@ -622,6 +623,17 @@ class AlleleGenotyping:
 				pass
 
 		##
+		## Assign distro originals
+		primary_dist = self.sequencepair_object.get_primaryallele().get_fwarray().copy()
+		primary_split = self.split_cag_target(primary_dist)
+		self.primary_original = primary_split[
+			'CCG{}'.format(self.sequencepair_object.get_primaryallele().get_ccg())]
+		secondary_dist = self.sequencepair_object.get_secondaryallele().get_fwarray().copy()
+		secondary_split = self.split_cag_target(secondary_dist)
+		self.secondary_original = secondary_split[
+			'CCG{}'.format(self.sequencepair_object.get_secondaryallele().get_ccg())]
+
+		##
 		## If we have an atypical allele in this sample, the remaining typical allele distribution may be skewed
 		## e.g. something aligning to CAG_1_1_7_2 would have aligned to CAG_1_0_9_2
 		## where a typical distribution would originally be CCG homozygous, the CAG_1_0_9_2 reads are still
@@ -1024,7 +1036,9 @@ class AlleleGenotyping:
 			## Somatic mosaicism
 			## Gather from N+1:N+10, sum and ratio:N
 			npo = allele.get_cag(); npt = allele.get_cag()+10
-			somatic_ratio = (sum(target[npo:npt]))/target[allele.get_cag()-1]
+			if allele.get_header() == 'PRI': dist = self.primary_original
+			if allele.get_header() == 'SEC': dist = self.secondary_original
+			somatic_ratio = (sum(dist[npo:npt]))/dist[allele.get_cag()-1]
 			allele.set_somaticmosaicism(somatic_ratio)
 
 			##
@@ -1110,14 +1124,28 @@ class AlleleGenotyping:
 		##
 		## ALSPAC sum bin for 31+ alleles...
 		def graph_subfunction(x, y, axis_labels, xticks, peak_index, predict_path, file_handle, prefix='', graph_type=None, neg_anchor=False):
+			#seaborn palette
+			sns.set(style='darkgrid')
+
 			x = np.linspace(x[0],x[1],x[2])
 			plt.figure(figsize=(10, 6)); plt.title(prefix+self.sequencepair_object.get_label())
 			plt.xlabel(axis_labels[0]); plt.ylabel(axis_labels[1])
 			if graph_type == 'bar':
+				## ticker forced to integers (instead of floats)
+				from matplotlib.ticker import FuncFormatter
+				## format xtick labels correctly (CCG vs CAG distributions)
 				if neg_anchor: xtickslabel = xticks[2]
-				else: xtickslabel = [str(i-1) for i in xticks[2]]
-				ppl.bar(x, y, grid='y', annotate=True, xticklabels=xtickslabel)
-				plt.xticks(size=8)
+				else: xtickslabel = [i-1 for i in xticks[2]]
+				## plot bar data, remove x labels
+				sns.barplot(x,y); plt.xticks([])
+				## re-add x labels above respective bar plots
+				for p, dat in zip(ax.patches, xtickslabel):
+					ax.text(p.get_x() + p.get_width() / 2., p.get_height()+25, dat, ha="center", fontsize=9)
+
+				## ticker forced to integers (instead of floats)
+				plt.gca().xaxis.set_major_formatter(FuncFormatter(lambda x, _: int(x)))
+
+
 			else:
 				plt.xticks(np.arange(xticks[0][0], xticks[0][1], xticks[0][2]), xticks[2])
 				plt.xlim(xticks[1][0], xticks[1][1])
