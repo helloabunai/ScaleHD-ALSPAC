@@ -13,7 +13,7 @@ setup(
     name='ScaleHD-ALSPAC',
 
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.253',
+    version='0.3',
 
     description='Automated DNA micro-satellite genotyping.',
     long_description=long_description,
@@ -104,6 +104,6 @@ setup(
 	# executables for the respective target platform. This entry point is akin
 	# to launching the script in bash: if __name__ == '__main__' etc..
     entry_points={
-        'console_scripts': ['scalehda=ScaleHD-ALSPAC.sherpa:main',],
+        'console_scripts': ['scalehda=ScaleHD_ALSPAC.sherpa:main',],
     },
 )
