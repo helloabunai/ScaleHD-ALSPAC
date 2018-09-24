@@ -58,7 +58,7 @@ class AlleleGenotyping:
 		if not self.determine_cag(): raise Exception('CAG Genotyping failure. Cannot genotype..')
 		if not self.genotype_validation(): raise Exception('Genotype failed validation. Cannot genotype..')
 		if not self.inspect_peaks():
-			log.warn('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, '1+ allele(s) failed peak validation. Precision not guaranteed.'))
+			log.warn('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, '1+ allele(s) failed peak validation. Precision not guaranteed.'))
 			self.warning_triggered = True
 			self.sequencepair_object.set_peakinspection_warning(True)
 		self.n_align_dist()

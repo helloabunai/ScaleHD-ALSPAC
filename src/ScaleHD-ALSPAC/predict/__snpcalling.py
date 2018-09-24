@@ -51,7 +51,7 @@ class DetermineMutations:
 					 stdout=subprocess.PIPE, stderr=subprocess.PIPE) 
 					picard_log = picard_subprocess.communicate(); picard_subprocess.wait()
 					if 'ERROR' in picard_log:
-						log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Failure in PICARD. Check sample output log.'))
+						log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Failure in PICARD. Check sample output log.'))
 						logpath = os.path.join(predpath, 'PicardErrorLog.txt')
 						with open(logpath, 'w') as logfi:
 							logfi.write(picard_log[0])
@@ -67,7 +67,7 @@ class DetermineMutations:
 					stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 				picard_log = picard_subprocess.communicate(); picard_subprocess.wait()
 				if 'ERROR' in picard_log:
-					log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Failure in PICARD. Check sample output log.'))
+					log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Failure in PICARD. Check sample output log.'))
 					logpath = os.path.join(predpath, 'PicardErrorLog.txt')
 					with open(logpath, 'w') as logfi:
 						logfi.write(picard_log[0])
@@ -83,7 +83,7 @@ class DetermineMutations:
 													stdout=freebayes_outfi, stderr=subprocess.PIPE)
 			freebayes_log = freebayes_subprocess.communicate(); freebayes_subprocess.wait()
 			if 'error' in freebayes_log:
-				log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Failure in FreeBayes. Check sample output log.'))
+				log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Failure in FreeBayes. Check sample output log.'))
 				logpath = os.path.join(predpath, 'FreeBayesErrorLog.txt')
 				with open(logpath, 'w') as logfi:
 					logfi.write(freebayes_log[0])
@@ -97,7 +97,7 @@ class DetermineMutations:
 			gatk_subprocess = subprocess.Popen([gatk_string], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			gatk_log = gatk_subprocess.communicate(); gatk_subprocess.wait()
 			if 'ERROR' in gatk_log:
-				log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Failure in GATK. Check sample output log.'))
+				log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Failure in GATK. Check sample output log.'))
 				logpath = os.path.join(predpath, 'GATKErrorLog.txt')
 				with open(logpath, 'w') as logfi:
 					logfi.write(gatk_log[0])

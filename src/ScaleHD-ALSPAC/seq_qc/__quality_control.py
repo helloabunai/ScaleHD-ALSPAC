@@ -39,7 +39,7 @@ class SeqQC:
 				return True
 
 		if raise_exception:
-			log.error('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'I/O: Invalid file format detected in input. Check input data.'))
+			log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'I/O: Invalid file format detected in input. Check input data.'))
 		return False
 
 	def execute_trimming(self):
@@ -140,7 +140,7 @@ class SeqQC:
 					self.trimming_report.append(trim_report)
 
 		if self.trimming_errors == 'True':
-			log.error('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'Trimming errors occurred. Check logging report!'))
+			log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Trimming errors occurred. Check logging report!'))
 			sys.exit(2)
 
 	def execute_fastqc(self):
@@ -200,7 +200,7 @@ class BatchadaptWrapper:
 			if self.forward_position == '5P': forward_adapter_argument = '-fwfp'
 		else:
 			log.error('{}{}{}{}.'.format(clr.red,
-										   'shd__ ',
+										   'shda__ ',
 										   clr.end,
 										   'Invalid demultiplexing adapter settings (forward). Please check.'))
 			sys.exit(2)
@@ -215,7 +215,7 @@ class BatchadaptWrapper:
 			if self.reverse_position == '5P': reverse_adapter_argument = '-rvfp'
 		else:
 			log.error('{}{}{}{}.'.format(clr.red,
-										   'shd__ ',
+										   'shda__ ',
 										   clr.end,
 										   'Invalid demultiplexing adapter settings (reverse). Please check.'))
 			sys.exit(2)

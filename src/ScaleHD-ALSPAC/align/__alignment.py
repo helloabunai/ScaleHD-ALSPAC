@@ -28,7 +28,7 @@ def purge_alignment_map(alignment_outdir, alignment_outfile):
 	try:
 		str(premapped_pcnt[0]).split('(')[1].rsplit('%')[0]
 	except IndexError:
-		log.critical('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Alignment file was empty -- did you demultiplex a demultiplexed file?'))
+		log.critical('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Alignment file was empty -- did you demultiplex a demultiplexed file?'))
 	prealn_pcnt = str(premapped_pcnt[0]).split('(')[1].rsplit('%')[0]
 	prealn_count = premapped_pcnt[0].split(' +')[0]; pre_purge = (prealn_count, prealn_pcnt)
 
@@ -246,7 +246,7 @@ class SeqAlign:
 		##
 		##User feedback on alignment progress.. maybe improve later
 		##if you're reading this and want better feedback, you probably know 'htop' exists
-		log.info('{}{}{}{}'.format(clr.bold,'shd__ ',clr.end,feedback_string))
+		log.info('{}{}{}{}'.format(clr.bold,'shda__ ',clr.end,feedback_string))
 		sample_string = '{}_{}_{}'.format(self.sample_root, io_index, typical_flag)
 		alignment_outdir = os.path.join(self.target_output, sample_string)
 		if os.path.exists(alignment_outdir):
@@ -360,7 +360,7 @@ class ReferenceIndex:
 		reference_root = self.reference.split('/')[-1].split('.')[0]
 		if os.path.isfile(self.reference):
 			if not (self.reference.endswith('.fa') or self.reference.endswith('.fasta')):
-				log.critical('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'Specified reference does not exist/is not fasta.'))
+				log.critical('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Specified reference does not exist/is not fasta.'))
 		##
 		## Path to store indexes for this reference
 		reference_index = os.path.join(self.target_output, reference_root)
