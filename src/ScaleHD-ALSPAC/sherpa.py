@@ -62,7 +62,7 @@ class ScaleHDALSPAC:
 
 		##
 		## Argument parser from CLI
-		self.parser = argparse.ArgumentParser(prog='scalehd', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
+		self.parser = argparse.ArgumentParser(prog='scalehd_alspac', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
 		self.parser.add_argument('-v', '--verbose', help='Verbose output mode. Setting this flag enables verbose output. Default: off.', action='store_true')
 		self.parser.add_argument('-c', '--config', help='Pipeline config. Specify a directory to your ArgumentConfig.xml file.', nargs=1, required=True)
 		self.parser.add_argument('-t', '--threads', help='Thread utilisation. Typically only alters third party alignment performance. Default: system max.', type=int, choices=xrange(1, THREADS+1), default=THREADS)
@@ -76,7 +76,7 @@ class ScaleHDALSPAC:
 
 		##
 		## Set verbosity for CLI output
-		self.logfi = os.path.join(self.args.output[0], 'ScaleHDLog.txt')
+		self.logfi = os.path.join(self.args.output[0], 'ScaleHDALSPACLog.txt')
 		## create logdir
 		if not os.path.exists(self.args.output[0]):
 			os.makedirs(self.args.output[0])
@@ -150,7 +150,7 @@ class ScaleHDALSPAC:
 		## In the future, replace with HTML based web-app, generated here?
 		## For now, just exit
 		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'ScaleHD-ALSPAC pipeline completed; exiting.'))
-		os.rename(self.logfi, os.path.join(self.instance_rundir, 'ScaleHDLog.txt'))
+		os.rename(self.logfi, os.path.join(self.instance_rundir, 'ScaleHDALSPACLog.txt'))
 
 	def instance_data(self):
 
@@ -173,7 +173,6 @@ class ScaleHDALSPAC:
 		##
 		## Instance results (genotype table)
 		self.instance_results = os.path.join(self.instance_rundir, 'InstanceReport.csv')
-		self.padded_distributions = os.path.join(self.instance_rundir, 'AlignedDistributions.csv')
 		self.header = '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
 					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
 					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
@@ -186,9 +185,7 @@ class ScaleHDALSPAC:
 			'CCG Rewritten', 'CCG Zygosity Rewritten', 'CCG Uncertainty', 'CCT Uncertainty', 'SVM Failure',
 			'Differential Confusion', 'Missed Expansion', 'Heuristic Filtering Success', 'Peak Inspection Warning', 'Low Distribution Reads', 'Low Peak Reads'
 		)
-		padded_header = '{},{},{},{},{},N-VAL\n'.format('Filename','Allele','Genotype','Dist',' ,'*200)
 		with open(self.instance_results, 'w') as outfi: outfi.write(self.header); outfi.close()
-		with open(self.padded_distributions, 'w') as padfi: padfi.write(padded_header); padfi.close()
 
 		##
 		## Instance graphs
@@ -370,7 +367,7 @@ class ScaleHDALSPAC:
 			log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Executing sequence quality control workflow..'))
 			if seq_qc.SeqQC(sequencepair_object, self.instance_params, 'validate'):
 				log.info('{}{}{}{}'.format(clr.bold,'shda__ ',clr.end,'Initialising trimming..'))
-				sequencepair_object.set_trimreport(seq_qc.SeqQC(sequencepair_object,self.instance_params,'trim').get_trimreport())
+				seq_qc.SeqQC(sequencepair_object,self.instance_params,'trim')
 				gc.collect()
 				log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Trimming complete!'))
 
@@ -379,7 +376,7 @@ class ScaleHDALSPAC:
 		alignment_flag = self.instance_params.config_dict['instance_flags']['@sequence_alignment']
 		if alignment_flag == 'True':
 			log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Executing alignment workflow..'))
-			sequencepair_object.set_alignreport(align.SeqAlign(sequencepair_object, self.instance_params).get_alignreport())
+			align.SeqAlign(sequencepair_object, self.instance_params)
 			gc.collect()
 			log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Sequence alignment workflow complete!'))
 

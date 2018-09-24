@@ -599,8 +599,6 @@ def initialise_libraries(instance_params):
 	if quality_control == 'True':
 		try:type_func('java')
 		except ScaleHDException: trigger=True
-		try:type_func('fastqc')
-		except ScaleHDException: trigger=True
 		try:type_func('cutadapt')
 		except ScaleHDException: trigger=True
 	if alignment == 'True':

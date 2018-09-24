@@ -26,11 +26,10 @@ class SeqQC:
 		self.target_output = sequencepair_object.get_qcpath()
 		self.instance_params = instance_params
 		self.trimming_errors = False
-		self.trimming_report = []
-		if stage.lower()=='validate': self.verify_input()
+		if stage.lower()=='validate':
+			self.verify_input()
 		if stage.lower()=='trim':
 			self.execute_trimming()
-			self.execute_fastqc()
 
 	def verify_input(self, raise_exception=True):
 
@@ -46,22 +45,14 @@ class SeqQC:
 
 		##
 		## Generic subprocess for use in trimming
-		def execute_cutadapt(arguments_split, filename_root, sample_output):
+		def execute_cutadapt(arguments_split):
 			trimming_subprocess = subprocess.Popen(['cutadapt'] + arguments_split, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			cutadapt_raw_output = trimming_subprocess.communicate()
-			cutadapt_report = cutadapt_raw_output[0]
 			cutadapt_errors = cutadapt_raw_output[1]
 			trimming_subprocess.wait()
 
-			report_directory = os.path.join(sample_output, filename_root + '_TrimmingReport.txt')
-			report_file = open(report_directory, 'w')
-			report_file.write(cutadapt_report)
-			report_file.write(cutadapt_errors)
-			report_file.close()
-
 			if cutadapt_errors is not None:
 				self.trimming_errors = True
-			return report_directory
 
 		##
 		## Determine what we want to trim from parameters dictionary
@@ -81,10 +72,9 @@ class SeqQC:
 						self.sequencepair_data.set_fwtrimmed(trimmed_outdir)
 
 					argument_list = ['-e', error_tolerance, '-q', quality_threshold, self.input_filepair[i], '-o', trimmed_outdir]
-					trim_report = execute_cutadapt(argument_list, file_root, self.target_output)
+					execute_cutadapt(argument_list)
 					if i == 0: self.sequencepair_data.set_fwreads(trimmed_outdir)
 					if i == 1: self.sequencepair_data.set_rvreads(trimmed_outdir)
-					self.trimming_report.append(trim_report)
 
 			stepwise_counter = 0
 			if trim_type.lower()=='adapter':
@@ -106,10 +96,9 @@ class SeqQC:
 					if file_root.split('_')[-1] == 'R1':
 						self.sequencepair_data.set_fwtrimmed(trimmed_outdir)
 					argument_list = ['-e', error_tolerance, adapter_anchor, adapter_string, self.input_filepair[i], '-o', trimmed_outdir]
-					trim_report = execute_cutadapt(argument_list, file_root, self.target_output)
+					execute_cutadapt(argument_list)
 					if i == 0: self.sequencepair_data.set_fwreads(trimmed_outdir)
 					if i == 1: self.sequencepair_data.set_rvreads(trimmed_outdir)
-					self.trimming_report.append(trim_report)
 					stepwise_counter += 1
 
 			stepwise_counter = 0
@@ -134,27 +123,13 @@ class SeqQC:
 					if adapter_anchor == '-g^':adapter_anchor = '-g';adapter_string = '^' + adapter_string
 
 					argument_list = ['-e', error_tolerance, '-q', quality_threshold, adapter_anchor, adapter_string, self.input_filepair[i], '-o', trimmed_outdir]
-					trim_report = execute_cutadapt(argument_list, file_root, self.target_output)
+					execute_cutadapt(argument_list)
 					if i == 0: self.sequencepair_data.set_fwreads(trimmed_outdir)
 					if i == 1: self.sequencepair_data.set_rvreads(trimmed_outdir)
-					self.trimming_report.append(trim_report)
 
 		if self.trimming_errors == 'True':
 			log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Trimming errors occurred. Check logging report!'))
 			sys.exit(2)
-
-	def execute_fastqc(self):
-
-		##
-		## For the files in the current file pair, make FastQC output folder and run FastQC
-		fqfile = self.sequencepair_data.get_fwtrimmed()
-		fastqc_outdir = os.path.join(self.target_output, 'FastQC')
-		mkdir_p(fastqc_outdir)
-		fastqc_process = subprocess.Popen(['fastqc','--quiet','--extract','-t',THREADS,'-o',fastqc_outdir,fqfile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		fastqc_process.wait()
-
-	def get_trimreport(self):
-		return self.trimming_report
 
 class BatchadaptWrapper:
 	def __init__(self, instance_params):
