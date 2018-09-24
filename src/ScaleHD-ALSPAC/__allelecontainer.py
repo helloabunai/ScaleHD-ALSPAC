@@ -10,6 +10,8 @@ class SequenceSample:
 		self.sample_predictpath = ''
 		self.enshrine_flag = False
 		self.subsample_flag = False
+		self.snpobservationvalue = 0
+		self.snpalgorithm = ''
 		self.broad_flag = False
 		self.group_flag = False
 		self.avoid_furthersubsample = False
@@ -29,6 +31,7 @@ class SequenceSample:
 		self.reverse_assembly = ''
 		self.forward_distribution = []
 		self.reverse_distribution = []
+		self.forward_trimmed = ''
 
 		self.trim_report = []
 		self.align_report = []
@@ -59,6 +62,8 @@ class SequenceSample:
 		self.distribution_readcount_warning = False
 		self.novel_atypical_structure = False
 		self.differential_confusion = False
+		self.missed_expansion = False
+		self.heuristicfilter_fail = False
 		self.original_fqcount = 0
 		self.subsampled_fqcount = 0
 
@@ -71,6 +76,8 @@ class SequenceSample:
 	def set_predictpath(self, predictpath):	self.sample_predictpath = predictpath
 	def set_enshrineflag(self, flag): self.enshrine_flag = flag
 	def set_subsampleflag(self, flag): self.subsample_flag = flag
+	def set_snpobservationvalue(self, val): self.snpobservationvalue = val
+	def set_snpalgorithm(self, algo): self.snpalgorithm = algo
 	def set_broadflag(self, flag): self.broad_flag = flag
 	def set_groupflag(self, flag): self.group_flag = flag
 	def set_avoidfurthersubsample(self, flag): self.avoid_furthersubsample = flag
@@ -90,6 +97,7 @@ class SequenceSample:
 	def set_rvassembly(self, assembly): self.reverse_assembly = assembly
 	def set_fwdist(self, dist): self.forward_distribution = dist
 	def set_rvdist(self, dist): self.reverse_distribution = dist
+	def set_fwtrimmed(self, reads): self.forward_trimmed = reads
 
 	def set_trimreport(self, report): self.trim_report = report
 	def set_alignreport(self, report): self.align_report = report
@@ -120,6 +128,8 @@ class SequenceSample:
 	def set_distribution_readcount_warning(self, state): self.distribution_readcount_warning = state
 	def set_novel_atypical_structure(self, state): self.novel_atypical_structure = state
 	def set_differential_confusion(self, state): self.differential_confusion = state
+	def set_missed_expansion(self, state): self.missed_expansion = state
+	def set_heuristicfilter(self, state): self.heuristicfilter_fail = state
 	def set_original_fqcount(self, count): self.original_fqcount = count
 	def set_subsampled_fqcount(self, count): self.subsampled_fqcount = count
 
@@ -132,6 +142,8 @@ class SequenceSample:
 	def get_predictpath(self): return self.sample_predictpath
 	def get_enshrineflag(self): return self.enshrine_flag
 	def get_subsampleflag(self): return self.subsample_flag
+	def get_snpobservationvalue(self): return self.snpobservationvalue
+	def get_snpalgorithm(self): return self.snpalgorithm
 	def get_broadflag(self): return self.broad_flag
 	def get_groupflag(self): return self.group_flag
 	def get_avoidfurthersubsample(self): return self.avoid_furthersubsample
@@ -151,6 +163,7 @@ class SequenceSample:
 	def get_rvassembly(self): return self.reverse_assembly
 	def get_fwdist(self): return self.forward_distribution
 	def get_rvdist(self): return self.reverse_distribution
+	def get_fwtrimmed(self): return self.forward_trimmed
 
 	def get_trimreport(self): return self.trim_report
 	def get_alignreport(self): return self.align_report
@@ -181,13 +194,14 @@ class SequenceSample:
 	def get_distribution_readcount_warning(self): return self.distribution_readcount_warning
 	def get_novel_atypical_structure(self): return self.novel_atypical_structure
 	def get_differential_confusion(self): return self.differential_confusion
+	def get_missed_expansion(self): return self.missed_expansion
+	def get_heuristicfilter(self): return self.heuristicfilter_fail
 	def get_original_fqcount(self): return self.original_fqcount
 	def get_subsampled_fqcount(self): return self.subsampled_fqcount
 
 	##
 	## Functions
 	def generate_sampletree(self):
-
 		for path in [self.sample_qcpath, self.sample_alignpath, self.sample_predictpath]:
 			try:
 				os.makedirs(path)
@@ -210,6 +224,8 @@ class IndividualAllele:
 		self.rewritten_ccg = 0
 		self.unrewritten_ccg = 0
 		self.cct_value = 0
+		self.variant_call = ''
+		self.variant_score = 0
 		self.three_prime = ''
 
 		self.allele_status = ''
@@ -238,6 +254,8 @@ class IndividualAllele:
 		self.reverse_array = []
 		self.forward_array_original = []
 		self.reverse_array_original = []
+		self.gatk_file = ''
+		self.freebayes_file = ''
 		self.ccg_peak_threshold = 0.0
 		self.cag_peak_threshold = 0.0
 
@@ -262,6 +280,9 @@ class IndividualAllele:
 		self.slippage_overwrite = False
 		self.fatalalignmentwarning = False
 		self.distribution_readcount_warning = False
+		self.differential_confusion = False
+		self.neighbouring_candidate = False
+		self.ccg_uncertain = False
 
 	##
 	## Setters
@@ -278,6 +299,8 @@ class IndividualAllele:
 	def set_rewrittenccg(self, ccg): self.rewritten_ccg = ccg
 	def set_unrewrittenccg(self, ccg): self.unrewritten_ccg = ccg
 	def set_cctval(self, cct): self.cct_value = cct
+	def set_variantcall(self, call): self.variant_call = call
+	def set_variantscore(self, score): self.variant_score = score
 	def set_threeprime(self, tp): self.three_prime = tp
 
 	def set_allelestatus(self, status): self.allele_status = status
@@ -306,6 +329,8 @@ class IndividualAllele:
 	def set_rvarray(self, array): self.reverse_array = array
 	def set_fwarray_orig(self, array): self.forward_array_original = array
 	def set_rvarray_orig(self, array): self.reverse_array_original = array
+	def set_gatk_file(self, infile): self.gatk_file = infile
+	def set_freebayes_file(self, infile): self.freebayes_file = infile
 	def set_ccgthreshold(self, threshold): self.ccg_peak_threshold = threshold
 	def set_cagthreshold(self, threshold): self.cag_peak_threshold = threshold
 
@@ -330,6 +355,9 @@ class IndividualAllele:
 	def set_slippageoverwrite(self, state): self.slippage_overwrite = state
 	def set_fatalalignmentwarning(self, state): self.fatalalignmentwarning = state
 	def set_distribution_readcount_warning(self, state): self.distribution_readcount_warning = state
+	def set_differential_confusion(self, state): self.differential_confusion = state
+	def set_neighbouring_candidate(self, state): self.neighbouring_candidate = state
+	def set_ccguncertainty(self, state): self.ccg_uncertain = state
 
 	##
 	## Getters
@@ -346,6 +374,8 @@ class IndividualAllele:
 	def get_rewrittenccg(self): return self.rewritten_ccg
 	def get_unrewrittenccg(self): return self.unrewritten_ccg
 	def get_cct(self): return self.cct_value
+	def get_variantcall(self): return self.variant_call
+	def get_variantscore(self): return self.variant_score
 	def get_threeprime(self): return self.three_prime
 
 	def get_allelestatus(self): return self.allele_status
@@ -374,6 +404,8 @@ class IndividualAllele:
 	def get_rvarray(self): return self.reverse_array
 	def get_fwarray_orig(self): return self.forward_array_original
 	def get_rvarray_orig(self): return self.reverse_array_original
+	def get_gatk_file(self): return self.gatk_file
+	def get_freebayes_file(self): return self.freebayes_file
 	def get_ccgthreshold(self): return self.ccg_peak_threshold
 	def get_cagthreshold(self): return self.cag_peak_threshold
 
@@ -398,3 +430,6 @@ class IndividualAllele:
 	def get_slippageoverwrite(self): return self.slippage_overwrite
 	def get_fatalalignmentwarning(self): return self.fatalalignmentwarning
 	def get_distribution_readcount_warning(self): return self.distribution_readcount_warning
+	def get_differential_confusion(self): return self.differential_confusion
+	def get_neighbouring_candidate(self): return self.neighbouring_candidate
+	def get_ccguncertainty(self): return self.ccg_uncertain

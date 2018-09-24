@@ -1,7 +1,7 @@
 from __future__ import division
 
 #/usr/bin/python
-__version__ = 0.3
+__version__ = 0.317
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -42,7 +42,7 @@ from . import predict
 ## Globals
 THREADS = cpu_count()
 
-class ScaleHD_ALSPAC:
+class ScaleHD:
 	def __init__(self):
 		"""
 		ScaleHD-ALSPAC: Automated triplet repeat genotyping for Huntington Disease
@@ -59,16 +59,16 @@ class ScaleHD_ALSPAC:
 		self.likelihood_matrix = pkg_resources.resource_filename(__name__, 'train/likelihood_matrix.csv')
 		self.raw_matrix = pkg_resources.resource_filename(__name__, 'train/raw_matrix.csv')
 		self.training_data = {'GenericDescriptor': self.generic_descriptor, 'CollapsedCCGZygosity': self.collapsed_ccg_zygosity}
-		self.fw_encoder = None; self.rv_encoder = None
 
 		##
 		## Argument parser from CLI
-		self.parser = argparse.ArgumentParser(prog='scalehda', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
+		self.parser = argparse.ArgumentParser(prog='scalehd', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
 		self.parser.add_argument('-v', '--verbose', help='Verbose output mode. Setting this flag enables verbose output. Default: off.', action='store_true')
 		self.parser.add_argument('-c', '--config', help='Pipeline config. Specify a directory to your ArgumentConfig.xml file.', nargs=1, required=True)
 		self.parser.add_argument('-t', '--threads', help='Thread utilisation. Typically only alters third party alignment performance. Default: system max.', type=int, choices=xrange(1, THREADS+1), default=THREADS)
 		self.parser.add_argument('-e', '--enshrine', help='Do not remove non-uniquely mapped reads from SAM files.', action='store_true')
 		self.parser.add_argument('-b', '--broadscope', help='Do not subsample fastq data in the case of high read-count.', action='store_true')
+		self.parser.add_argument('-g', '--groupsam', help='Outputs all sorted SAM files into one instance-wide output folder, rather than sample subfolders.', action='store_true')
 		self.parser.add_argument('-j', '--jobname', help='Customised folder output name. If not specified, defaults to normal output naming schema.', type=str)
 		self.parser.add_argument('-o', '--output', help='Output path. Specify a directory you wish output to be directed towards.', metavar='output', nargs=1, required=True)
 		self.args = self.parser.parse_args()
@@ -76,25 +76,43 @@ class ScaleHD_ALSPAC:
 
 		##
 		## Set verbosity for CLI output
+		self.logfi = os.path.join(self.args.output[0], 'ScaleHDLog.txt')
+		## create logdir
+		if not os.path.exists(self.args.output[0]):
+			print 'making {}'.format(self.args.output[0])
+			os.makedirs(self.args.output[0])
+
 		if self.args.verbose:
-			log.basicConfig(format='%(message)s', level=log.DEBUG)
-			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.'))
-			log.info('{}{}{}{}'.format(clr.bold, 'sdha__ ', clr.end, '!! ALPSAC PheWAS Version. Make sure you intend to use this fork !!'))
-			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'alastair.maxwell@glasgow.ac.uk\n'))
+			log.basicConfig(format='%(message)s', level=log.DEBUG, filename=self.logfi)
+			log.getLogger().addHandler(log.StreamHandler())
+			log.info('{}{}{}{}'.format(clr.bold, 'shd__ ', clr.end, 'ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.'))
+			log.info('{}{}{}{}'.format(clr.bold, 'shd__ ', clr.end, 'alastair.maxwell@glasgow.ac.uk\n'))
 		else:
 			log.basicConfig(format='%(message)s')
 
 		##
+		## Check we're on python 2.7.13
+		if not (sys.version_info[0] == 2 and sys.version_info[1] == 7):
+			if sys.version_info[2] > 13:
+				pass
+			if sys.version_info[2] < 13:
+				current_user_version = '{}.{}.{}'.format(sys.version_info[0], sys.version_info[1], sys.version_info[2])
+				log.error('{}{}{}{}{}.'.format(clr.red, 'shd__ ', clr.end, 'ScaleHD-ALSPAC requires python2 2.7.13 or later!'
+																		   ' You are using: ', current_user_version))
+				sys.exit(2)
+
+		##
 		## Check inputs, generate outputs
 		if sanitise_inputs(self.args):
-			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Error with specified input(s) configuration. Exiting.'))
+			log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Error with specified input(s) configuration. Exiting.'))
 			sys.exit(2)
 		try:
 			self.instance_rundir = sanitise_outputs(self.args.jobname, self.args.output)
 		except Exception, e:
-			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, e))
+			log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, e))
 			sys.exit(2)
 		self.enshrine_assembly = self.args.enshrine
+		self.group_flag = self.args.groupsam
 		self.broad_flag = self.args.broadscope
 		self.instance_summary = {}; self.instance_graphs = ''
 
@@ -110,10 +128,10 @@ class ScaleHD_ALSPAC:
 		##
 		## Check libraries for stages specified in config
 		if initialise_libraries(self.instance_params):
-			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Detected missing library from system/$PATH. Exiting.'))
+			log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Detected missing library from system/$PATH. Exiting.'))
 			sys.exit(2)
 		else:
-			log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'Required libraries present, assuming OK!\n'))
+			log.info('{}{}{}{}'.format(clr.green, 'shd__ ', clr.end, 'Required libraries present, assuming OK!\n'))
 
 		##
 		## Set-up instance wide applicable files
@@ -132,7 +150,8 @@ class ScaleHD_ALSPAC:
 		## A simple report file is appended after each sample pair, currently..
 		## In the future, replace with HTML based web-app, generated here?
 		## For now, just exit
-		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'ScaleHD-ALSPAC pipeline completed; exiting.'))
+		log.info('{}{}{}{}'.format(clr.green, 'shd__ ', clr.end, 'ScaleHD-ALSPAC pipeline completed; exiting.'))
+		os.rename(self.logfi, os.path.join(self.instance_rundir, 'ScaleHDLog.txt'))
 
 	def instance_data(self):
 
@@ -140,36 +159,35 @@ class ScaleHD_ALSPAC:
 		## Reference indexes
 		if self.args.config:
 			if self.instance_params.config_dict['instance_flags']['@sequence_alignment']:
-				log.info('{}{}{}{}'.format(clr.bold,'shda__ ',clr.end,'Indexing reference(s) before initialising sample pair cycle..'))
+				log.info('{}{}{}{}'.format(clr.bold,'shd__ ',clr.end,'Indexing reference(s) before initialising sample pair cycle..'))
 				self.index_path = os.path.join(self.instance_rundir,'Indexes'); mkdir_p(self.index_path)
 				forward_reference = self.instance_params.config_dict['@forward_reference']
 				reverse_reference = self.instance_params.config_dict['@reverse_reference']
-				## ALSPAC<<
-				## Indexes are required to be obfuscated so the end-user cannot determine the repeat count
-				## by observing intermediary files
-				forward_index, forward_encoder = align.ReferenceIndex(forward_reference, self.index_path).get_index_path()
-				reverse_index, reverse_encoder = align.ReferenceIndex(reverse_reference, self.index_path).get_index_path()
+				forward_index = align.ReferenceIndex(forward_reference, self.index_path).get_index_path()
+				reverse_index = align.ReferenceIndex(reverse_reference, self.index_path).get_index_path()
 				self.typical_indexes = [forward_index, reverse_index]
 				self.reference_indexes = [forward_index, reverse_index]
-				self.fw_encoder = forward_encoder
-				self.rv_encoder = reverse_encoder
+			if self.instance_params.config_dict['instance_flags']['@demultiplex'] == 'True':
+				log.info('{}{}{}{}'.format(clr.bold,'shd__ ',clr.end,'Demultiplexing reads.. (this may take some time)'))
+				seq_qc.BatchadaptWrapper(self.instance_params)
 
 		##
 		## Instance results (genotype table)
 		self.instance_results = os.path.join(self.instance_rundir, 'InstanceReport.csv')
 		self.padded_distributions = os.path.join(self.instance_rundir, 'AlignedDistributions.csv')
-		self.header = '{},{},{},{},{},{},{},{},{},{},{},{},{},' \
-					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
-					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+		self.header = '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
+					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
+					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
 			'SampleName', '' ,'Primary GTYPE', 'Status', 'Map (FW)', 'Map% (FW)', 'Purged (FW)', 'Map (RV)', 'Map% (RV)',
-			'Purged (RV)', 'BSlippage', 'Somatic Mosaicism', 'Intervening Sequence', 'Confidence', '', 'Secondary GTYPE',
-			'Status', 'Map (FW)', 'Map% (FW)', 'Purged (FW)', 'Map (RV)', 'Map% (RV)', 'Purged (RV)', 'BSlippage',
-			'Somatic Mosaicism', 'Intervening Sequence', 'Confidence', '', 'Exception Raised', 'Homozygous Haplotype',
+			'Purged (RV)', 'BSlippage', 'Somatic Mosaicism', 'Variant Call', 'Variant Score', 'Intervening Sequence',
+			'Confidence', '', 'Secondary GTYPE', 'Status', 'Map (FW)', 'Map% (FW)', 'Purged (FW)', 'Map (RV)',
+			'Map% (RV)', 'Purged (RV)', 'BSlippage', 'Somatic Mosaicism', 'Variant Call', 'Variant Score',
+			'Intervening Sequence', 'Confidence', '', 'Exception Raised', 'Homozygous Haplotype',
 			'Neighbouring Peaks', 'Diminished Peaks', 'Novel Atypical', 'Alignment Warning', 'Atypical Alignment Warning',
 			'CCG Rewritten', 'CCG Zygosity Rewritten', 'CCG Uncertainty', 'CCT Uncertainty', 'SVM Failure',
-			'Differential Confusion', 'Peak Inspection Warning', 'Low Distribution Reads', 'Low Peak Reads'
+			'Differential Confusion', 'Missed Expansion', 'Heuristic Filtering Success', 'Peak Inspection Warning', 'Low Distribution Reads', 'Low Peak Reads'
 		)
-		padded_header = '{},{},{},{},{},N-VAL\n'.format('Filename','Allele','CCGVal','Dist',' ,'*200)
+		padded_header = '{},{},{},{},{},N-VAL\n'.format('Filename','Allele','Genotype','Dist',' ,'*200)
 		with open(self.instance_results, 'w') as outfi: outfi.write(self.header); outfi.close()
 		with open(self.padded_distributions, 'w') as padfi: padfi.write(padded_header); padfi.close()
 
@@ -208,12 +226,15 @@ class ScaleHD_ALSPAC:
 		"""
 		##
 		## Config generics
-		instance_inputdata = self.instance_params.config_dict['@data_dir']
+		if self.instance_params.config_dict['instance_flags']['@demultiplex'] == 'True':
+			instance_inputdata = self.instance_params.config_dict['@data_dir']+'_demultiplexed'
+		else:
+			instance_inputdata = self.instance_params.config_dict['@data_dir']
 
 		##
 		## Pre-stage: check for compressed data, extract
 		if not extract_data(instance_inputdata):
-			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Error during file extraction. Please check data!'))
+			log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Error during file extraction. Please check data!'))
 
 		##
 		## Executing the workflow for this SHD instance
@@ -221,11 +242,10 @@ class ScaleHD_ALSPAC:
 		data_pairs = sequence_pairings(instance_inputdata, self.instance_rundir)
 		for i in range(len(data_pairs)):
 			for seqpair_lbl, seqpair_dat in data_pairs[i].iteritems():
-
 				################################################
 				## Pre stage! Sample object/Tree generation.. ##
 				################################################
-				log.info('{}{}{}{}{}/{} ({})'.format(clr.bold, 'shda__ ', clr.end, 'Processing sequence pair: ',
+				log.info('{}{}{}{}{}/{} ({})'.format(clr.bold, 'shd__ ', clr.end, 'Processing sequence pair: ',
 													 str(i + 1), str(len(data_pairs)), seqpair_lbl))
 				current_seqpair = SequenceSample()
 				current_seqpair.set_label(seqpair_lbl)
@@ -234,15 +254,15 @@ class ScaleHD_ALSPAC:
 				current_seqpair.set_alignpath(seqpair_dat[4])
 				current_seqpair.set_predictpath(seqpair_dat[5])
 				current_seqpair.set_enshrineflag(self.enshrine_assembly)
+				current_seqpair.set_snpobservationvalue(self.instance_params.config_dict['prediction_flags']['@snp_observation_threshold'])
+				current_seqpair.set_snpalgorithm(self.instance_params.config_dict['prediction_flags']['@algorithm_utilisation'])
 				current_seqpair.set_broadflag(self.broad_flag)
+				current_seqpair.set_groupflag(self.group_flag)
 				current_seqpair.set_fwidx(self.reference_indexes[0])
 				current_seqpair.set_rvidx(self.reference_indexes[1])
 				current_seqpair.set_fwreads(seqpair_dat[0])
 				current_seqpair.set_rvreads(seqpair_dat[1])
-				current_seqpair.set_fwlabel_encoder(self.fw_encoder)
-				current_seqpair.set_rvlabel_encoder(self.rv_encoder)
 				current_seqpair.generate_sampletree()
-
 				############################################
 				## Stage one!! Sequence quality control.. ##
 				############################################
@@ -251,7 +271,7 @@ class ScaleHD_ALSPAC:
 				except Exception, e:
 					current_seqpair.set_exceptionraised('SeqQC')
 					self.append_report(current_seqpair)
-					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shda__ ',clr.end,'SeqQC failure on ',seqpair_lbl,str(e)))
+					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shd__ ',clr.end,'SeqQC failure on ',seqpair_lbl,str(e)))
 					continue
 				##############################################
 				## Stage two!! Sequence alignment via bwa.. ##
@@ -261,7 +281,7 @@ class ScaleHD_ALSPAC:
 				except Exception, e:
 					current_seqpair.set_exceptionraised('SeqALN')
 					self.append_report(current_seqpair)
-					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shda__ ',clr.end,'Alignment failure on ',seqpair_lbl,str(e)))
+					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shd__ ',clr.end,'Alignment failure on ',seqpair_lbl,str(e)))
 					continue
 				###############################################
 				## Stage three!! Scan for atypical alleles.. ##
@@ -271,7 +291,7 @@ class ScaleHD_ALSPAC:
 				except Exception, e:
 					current_seqpair.set_exceptionraised('DSP')
 					self.append_report(current_seqpair)
-					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Atypical scanning failure on ', seqpair_lbl, str(e)))
+					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shd__ ', clr.end, 'Atypical scanning failure on ', seqpair_lbl, str(e)))
 					continue
 				##########################################
 				## Stage four!! Process allele status.. ##
@@ -286,10 +306,10 @@ class ScaleHD_ALSPAC:
 							except Exception, e:
 								current_seqpair.set_exceptionraised('SeqRE-ALN')
 								self.append_report(current_seqpair)
-								log.info('{}{}{}{}{}: {}'.format(clr.red,'shda__ ',clr.end,'Realignment failure on ',seqpair_lbl,str(e)))
+								log.info('{}{}{}{}{}: {}'.format(clr.red,'shd__ ',clr.end,'Realignment failure on ',seqpair_lbl,str(e)))
 								continue
 						else:
-							log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Atypical realignment not selected. Brute-force genotyping on inaccurate data.'))
+							log.info('{}{}{}{}'.format(clr.yellow,'shd__ ',clr.end,'Atypical realignment not selected. Brute-force genotyping on inaccurate data.'))
 							invalid_data = True
 							allele.set_fwdist(current_seqpair.get_fwdist())
 							allele.set_rvdist(current_seqpair.get_rvdist())
@@ -304,23 +324,21 @@ class ScaleHD_ALSPAC:
 						allele.set_rvdist(current_seqpair.get_rvdist())
 						allele.set_rvassembly(current_seqpair.get_rvassembly())
 
-				## tidy up subsampled seq files
+				## tidy up seq files (only if trimming was carried out, otherwise it deletes raw input)
 				if self.instance_params.config_dict['instance_flags']['@quality_control']:
 					for seqfi in [current_seqpair.get_fwreads(), current_seqpair.get_rvreads()]:
 						if '_SUB_R' in seqfi:
-							try:
-								os.remove(seqfi)
-							except OSError:
-								pass
-				#####################################################
-				## Stage five!! Genotype distributions/SNP Calling ##
-				#####################################################
+							try: os.remove(seqfi)
+							except OSError: pass
+				#########################################
+				## Stage five!! Genotype distributions ##
+				#########################################
 				try:
 					self.allele_genotyping(current_seqpair, invalid_data)
 				except Exception, e:
 					current_seqpair.set_exceptionraised('Genotype')
 					self.append_report(current_seqpair)
-					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
+					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shd__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
 					continue
 				#############################
 				## Stage six!! SNP calling ##
@@ -342,46 +360,46 @@ class ScaleHD_ALSPAC:
 				except Exception, e:
 					current_seqpair.set_exceptionraised('Report/Graph')
 					self.append_report(current_seqpair)
-					log.info('{}{}{}{}{}: {}'.format(clr.red, 'shda__ ', clr.end, 'Report/Graphing failure on ', seqpair_lbl, str(e)))
+					log.info('{}{}{}{}{}: {}'.format(clr.red, 'shd__ ', clr.end, 'Report/Graphing failure on ', seqpair_lbl, str(e)))
 				gc.collect()
-				log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Sequence pair workflow complete!\n'))
+				log.info('{}{}{}{}'.format(clr.green,'shd__ ',clr.end,'Sequence pair workflow complete!\n'))
 
 	def quality_control(self, sequencepair_object):
 
 		seq_qc_flag = self.instance_params.config_dict['instance_flags']['@quality_control']
 		if seq_qc_flag == 'True':
-			log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Executing sequence quality control workflow..'))
+			log.info('{}{}{}{}'.format(clr.yellow,'shd__ ',clr.end,'Executing sequence quality control workflow..'))
 			if seq_qc.SeqQC(sequencepair_object, self.instance_params, 'validate'):
-				log.info('{}{}{}{}'.format(clr.bold,'shda__ ',clr.end,'Initialising trimming..'))
+				log.info('{}{}{}{}'.format(clr.bold,'shd__ ',clr.end,'Initialising trimming..'))
 				sequencepair_object.set_trimreport(seq_qc.SeqQC(sequencepair_object,self.instance_params,'trim').get_trimreport())
 				gc.collect()
-				log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Trimming complete!'))
+				log.info('{}{}{}{}'.format(clr.green,'shd__ ',clr.end,'Trimming complete!'))
 
 	def sequence_alignment(self, sequencepair_object):
 
 		alignment_flag = self.instance_params.config_dict['instance_flags']['@sequence_alignment']
 		if alignment_flag == 'True':
-			log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Executing alignment workflow..'))
+			log.info('{}{}{}{}'.format(clr.yellow,'shd__ ',clr.end,'Executing alignment workflow..'))
 			sequencepair_object.set_alignreport(align.SeqAlign(sequencepair_object, self.instance_params).get_alignreport())
 			gc.collect()
-			log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Sequence alignment workflow complete!'))
+			log.info('{}{}{}{}'.format(clr.green,'shd__ ',clr.end,'Sequence alignment workflow complete!'))
 
 	def atypical_scanning(self, sequencepair_object):
 
 		alignment_flag = self.instance_params.config_dict['instance_flags']['@sequence_alignment']
 		if alignment_flag == 'True':
-			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'Scanning for atypical alleles..'))
-			align.ScanAtypical(sequencepair_object, self.instance_params)
+			log.info('{}{}{}{}'.format(clr.bold, 'shd__ ', clr.end, 'Scanning for atypical alleles..'))
+			sequencepair_object.set_atypicalreport(align.ScanAtypical(sequencepair_object, self.instance_params).get_atypicalreport())
 			atypical_count = sequencepair_object.get_atypicalcount()
 			if atypical_count != 0:
-				log.info('{}{}{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'Scanning complete! ',str(sequencepair_object.get_atypicalcount()),' atypical allele(s) present.'))
+				log.info('{}{}{}{}{}{}'.format(clr.yellow, 'shd__ ', clr.end, 'Scanning complete! ',str(sequencepair_object.get_atypicalcount()),' atypical allele(s) present.'))
 			else:
-				log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end,'Scanning complete! No atypical alleles present.'))
+				log.info('{}{}{}{}'.format(clr.green, 'shd__ ', clr.end,'Scanning complete! No atypical alleles present.'))
 			gc.collect()
 
 	def sequence_realignment(self, sequencepair_object, individual_allele):
 
-		log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'User specified sequence re-alignment. Generating custom reference..'))
+		log.info('{}{}{}{}'.format(clr.yellow,'shd__ ',clr.end,'User specified sequence re-alignment. Generating custom reference..'))
 
 		atypical_index_path = os.path.join(sequencepair_object.get_alignpath(), 'AtypicalIndexes')
 		if not os.path.exists(atypical_index_path):	mkdir_p(atypical_index_path)
@@ -389,42 +407,33 @@ class ScaleHD_ALSPAC:
 		fw_xml = generate_atypical_xml(sequencepair_object.get_label(), individual_allele, atypical_index_path, 'fw')
 		rv_xml = generate_atypical_xml(sequencepair_object.get_label(), individual_allele, atypical_index_path, 'rv')
 
-		##
-		## ALSPAC
-		## Utilise less information for indexing issue with atypicals
-		fwfasta = generate_reference(fw_xml, atypical_index_path)
-		rvfasta = generate_reference(rv_xml, atypical_index_path)
+		fwfasta = generate_reference(fw_xml, atypical_index_path, self.reference_indexes, 'fw')
+		rvfasta = generate_reference(rv_xml, atypical_index_path, self.reference_indexes, 'rv')
 
-		fwidx, fw_encoder = align.ReferenceIndex(fwfasta, atypical_index_path).get_index_path()
-		rvidx, rv_encoder = align.ReferenceIndex(rvfasta, atypical_index_path).get_index_path()
+		fwidx = align.ReferenceIndex(fwfasta, atypical_index_path).get_index_path()
+		rvidx = align.ReferenceIndex(rvfasta, atypical_index_path).get_index_path()
 
-		individual_allele.set_fwidx(fwidx); individual_allele.set_fwlabel_encoder(fw_encoder)
-		individual_allele.set_rvidx(rvidx); individual_allele.set_rvlabel_encoder(rv_encoder)
+		individual_allele.set_fwidx(fwidx)
+		individual_allele.set_rvidx(rvidx)
 
-		log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Re-aligning to custom reference..'))
+		log.info('{}{}{}{}'.format(clr.yellow,'shd__ ',clr.end,'Re-aligning to custom reference..'))
 		align.SeqAlign(sequencepair_object, self.instance_params, individual_allele)
 		gc.collect()
 
-		log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Allele re-alignment complete!'))
+		log.info('{}{}{}{}'.format(clr.green,'shd__ ',clr.end,'Allele re-alignment complete!'))
 
 	def allele_genotyping(self, sequencepair_object, invalid_data):
 
 		genotyping_flag = self.instance_params.config_dict['instance_flags']['@genotype_prediction']
-		snpcall_flag = self.instance_params.config_dict['instance_flags']['@snp_calling']
 
 		## genotyping
 		if genotyping_flag == 'True':
-			log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Genotyping alleles.. '))
+			log.info('{}{}{}{}'.format(clr.yellow,'shd__ ',clr.end,'Genotyping alleles.. '))
 			sequencepair_object.set_genotypereport(predict.AlleleGenotyping(sequencepair_object, self.instance_params, self.training_data, atypical_logic=invalid_data, padded_target=self.padded_distributions).get_report())
-
-		## snp calling
-		# if snpcall_flag == 'True':
-		# 	log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Calling SNPs.. '))
-		# 	sequencepair_object.set_snpreport(predict.SNPCalling(sequencepair_object, self.instance_params).get_report())
 
 		## tidy up
 		gc.collect()
-		log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Genotyping workflow complete!'))
+		log.info('{}{}{}{}'.format(clr.green,'shd__ ',clr.end,'Genotyping workflow complete!'))
 
 	def snp_calling(self, sequencepair_object):
 
@@ -481,12 +490,14 @@ class ScaleHD_ALSPAC:
 						 [primary_allele, 'get_allelestatus'], [primary_allele, 'get_fwalncount'],
 						 [primary_allele, 'get_fwalnpcnt'], [primary_allele, 'get_fwalnrmvd'], [primary_allele, 'get_rvalncount'],
 						 [primary_allele, 'get_rvalnpcnt'], [primary_allele, 'get_rvalnrmvd'], [primary_allele, 'get_backwardsslippage'],
-						 [primary_allele, 'get_somaticmosaicism'], [primary_allele, 'get_intervening'],
+						 [primary_allele, 'get_somaticmosaicism'], [primary_allele, 'get_variantcall'],
+						 [primary_allele, 'get_variantscore'], [primary_allele, 'get_intervening'],
 						 [primary_allele, 'get_alleleconfidence'], ['NULL', 'NULL'], [secondary_allele, 'get_reflabel'],
 						 [secondary_allele, 'get_allelestatus'], [secondary_allele, 'get_fwalncount'],
 						 [secondary_allele, 'get_fwalnpcnt'], [secondary_allele, 'get_fwalnrmvd'], [secondary_allele, 'get_rvalncount'],
 						 [secondary_allele, 'get_rvalnpcnt'], [secondary_allele, 'get_rvalnrmvd'], [secondary_allele, 'get_backwardsslippage'],
-						 [secondary_allele, 'get_somaticmosaicism'], [secondary_allele, 'get_intervening'],
+						 [secondary_allele, 'get_somaticmosaicism'], [secondary_allele, 'get_variantcall'],
+						 [secondary_allele, 'get_variantscore'], [secondary_allele, 'get_intervening'],
 						 [secondary_allele, 'get_alleleconfidence'], ['NULL', 'NULL'],
 						 [sequencepair_object, 'get_exceptionraised'],[sequencepair_object, 'get_homozygoushaplotype'],
 						 [sequencepair_object, 'get_neighbouringpeaks'], [sequencepair_object, 'get_diminishedpeaks'],
@@ -494,9 +505,10 @@ class ScaleHD_ALSPAC:
 						 [sequencepair_object, 'get_atypical_alignmentwarning'], [sequencepair_object, 'get_atypical_ccgrewrite'],
 						 [sequencepair_object, 'get_atypical_zygrewrite'], [sequencepair_object, 'get_ccguncertainty'],
 						 [sequencepair_object, 'get_cctuncertainty'], [sequencepair_object, 'get_svm_failure'],
-						 [sequencepair_object, 'get_differential_confusion'], [sequencepair_object, 'get_peakinspection_warning'], [sequencepair_object, 'get_distribution_readcount_warning'],
+						 [sequencepair_object, 'get_differential_confusion'], [sequencepair_object, 'get_missed_expansion'],
+						 [sequencepair_object, 'get_heuristicfilter'], [sequencepair_object, 'get_peakinspection_warning'],
+						 [sequencepair_object, 'get_distribution_readcount_warning'],
 						 [sequencepair_object, 'get_fatalreadallele']]
-
 
 		report_string = call_object_scraper(unparsed_info)
 		report_string += '\n'
@@ -507,8 +519,8 @@ class ScaleHD_ALSPAC:
 				outfi.close()
 		except IOError:
 			from os.path import expanduser; home = expanduser("~")
-			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'InstanceReport.csv resource LOCKED. Open in excel?'))
-			log.info('{}{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'Cannot write while locked. Writing to: ', home))
+			log.error('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'InstanceReport.csv resource LOCKED. Open in excel?'))
+			log.info('{}{}{}{}{}'.format(clr.yellow, 'shd__ ', clr.end, 'Cannot write while locked. Writing to: ', home))
 			with open(os.path.join(home, 'InstanceReport.csv'), 'w') as newoutfi:
 				newoutfi.write(self.header); newoutfi.close()
 			with open(os.path.join(home, 'InstanceReport.csv'), 'a') as newappfi:
@@ -516,7 +528,7 @@ class ScaleHD_ALSPAC:
 
 def main():
 	try:
-		ScaleHD_ALSPAC()
+		ScaleHD()
 	except KeyboardInterrupt:
-		log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Fatal: Keyboard Interrupt detected. Exiting.'))
+		log.error('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'Fatal: Keyboard Interrupt detected. Exiting.'))
 		sys.exit(2)

@@ -13,11 +13,11 @@ setup(
     name='ScaleHD-ALSPAC',
 
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.3',
+    version='0.317',
 
     description='Automated DNA micro-satellite genotyping.',
     long_description=long_description,
-
+	python_requires='>=2.7.13',
     # The project's main homepage.
     url='https://github.com/helloabunai/ScaleHD-ALSPAC',
 
@@ -85,15 +85,15 @@ setup(
 					  'regex',
 					  'PyPDF2',
 					  'reportlab',
-					  'rpy2',
 					  'generatr',
-					  'biopython'
+					  'batchadapt',
+					  'pyvcf'
 					  ],
 
     # These are the data files to be included in the package
 	# For GenoCall, this will be the data-sets used for machine-learning
 	# training, and generating predictive models for each 'data state'
-    package_data={'ScaleHDA': ['train/long_descr.rst',
+    package_data={'ScaleHD-ALSPAC': ['train/long_descr.rst',
                               'train/polyglutamine.csv',
                               'train/likelihood_matrix.csv',
                               'train/raw_matrix.csv',
@@ -104,6 +104,6 @@ setup(
 	# executables for the respective target platform. This entry point is akin
 	# to launching the script in bash: if __name__ == '__main__' etc..
     entry_points={
-        'console_scripts': ['scalehda=ScaleHD_ALSPAC.sherpa:main',],
+        'console_scripts': ['scalehd_alspac=ScaleHD-ALSPAC.sherpa:main',],
     },
 )

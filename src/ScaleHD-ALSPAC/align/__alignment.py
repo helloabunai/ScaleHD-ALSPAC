@@ -1,16 +1,15 @@
 #/usr/bin/python
-__version__ = 0.3
+__version__ = 0.317
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
 ## Generals
 import os
 import sys
-import subprocess
+import errno
 import shutil
+import subprocess
 import logging as log
-from Bio import SeqIO
-from sklearn import preprocessing
 
 ##
 ## Backend junk
@@ -24,7 +23,12 @@ def purge_alignment_map(alignment_outdir, alignment_outfile):
 	## Readcount on pre-purged assembly (100% of aligned reads present)
 	prepurge_readcount = subprocess.Popen(['samtools', 'flagstat', alignment_outfile],
 							  stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
 	premapped_pcnt = [x for x in (prepurge_readcount[0].split('\n')) if '%' in x]
+	try:
+		str(premapped_pcnt[0]).split('(')[1].rsplit('%')[0]
+	except IndexError:
+		log.critical('{}{}{}{}'.format(clr.red, 'shd__ ', clr.end, 'Alignment file was empty -- did you demultiplex a demultiplexed file?'))
 	prealn_pcnt = str(premapped_pcnt[0]).split('(')[1].rsplit('%')[0]
 	prealn_count = premapped_pcnt[0].split(' +')[0]; pre_purge = (prealn_count, prealn_pcnt)
 
@@ -37,8 +41,12 @@ def purge_alignment_map(alignment_outdir, alignment_outfile):
 	postpurge_readcount = subprocess.Popen(['samtools', 'flagstat', purged_assembly],
 							 stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 	postmapped_pcnt = [x for x in (postpurge_readcount[0].split('\n')) if '%' in x]
-	postaln_pcnt = str(postmapped_pcnt[0]).split('(')[1].rsplit('%')[0]
-	postaln_count = postmapped_pcnt[0].split(' +')[0]; post_purge = (postaln_count, postaln_pcnt)
+	try:
+		postaln_pcnt = str(postmapped_pcnt[0]).split('(')[1].rsplit('%')[0]
+		postaln_count = postmapped_pcnt[0].split(' +')[0]
+		post_purge = (postaln_count, postaln_pcnt)
+	except IndexError:
+		raise Exception('No reads aligned at all in this sample. Cannot progress.')
 
 	## both flagstat output for writing to report file
 	flagstat_output = (prepurge_readcount, postpurge_readcount)
@@ -75,28 +83,18 @@ def extract_repeat_distributions(sample_root, alignment_outdir, alignment_outfil
 			values = line.split('\t')
 			data_string += values[0] + ',' + values[1] + ',' + values[2] + ',0\n'
 
-	##
-	## Write to dictionary and file
 	filestring = sample_root + '\n'
 	filestring += data_string
-	split_repeatdist = filestring.split('\n')
-	#hashed_data = {'SampleName': split_repeatdist[0]}
-	hashed_data = {}
-	for reference_alignment in split_repeatdist[1:-1]:
-		reference_split = reference_alignment.split(',')
-		hashed_data[reference_split[0]] = reference_split[2]
 	csv_path = os.path.join(alignment_outdir, sample_root+'_RepeatDistribution.csv')
 	csv_file = open(csv_path, 'w')
 	csv_file.write(filestring)
 	csv_file.close()
+	os.remove(raw_repeat_distribution)
 
 	##
-	## Delete compromising files (ALSPAC)
-	## Return dictionary of repeat count distribution (hashed)
-	os.remove(raw_repeat_distribution)
+	## We return this single csv for when the function is called from shd/prediction
 	os.remove(alignment_outfile)
-
-	return csv_path, hashed_data, sorted_assembly
+	return csv_path, sorted_assembly
 
 class SeqAlign:
 
@@ -128,7 +126,6 @@ class SeqAlign:
 			target_outfi = open(target_output, 'w')
 			seqtk_process = subprocess.Popen(['seqtk', 'sample', '-s100', target_file, str(self.subsample_flag)], stdout=target_outfi)
 			seqtk_process.wait(); target_outfi.close()
-			#self.sequencepair_object.set_avoidfurthersubsample(True) -- not required currently
 			return target_output
 		else:
 			return target_file
@@ -139,8 +136,7 @@ class SeqAlign:
 		## Get forward/reverse references/indexes
 		forward_index = self.reference_indexes[0]
 		reverse_index = self.reference_indexes[1]
-		forward_reads = ''
-		reverse_reads = ''
+		forward_reads = ''; reverse_reads = ''
 
 		##
 		## Subsample check
@@ -152,16 +148,21 @@ class SeqAlign:
 
 		self.subsample_flag = 1.0
 		if not self.broad_flag:
-			if awk_output > 100000: self.subsample_flag = 0.15
-			elif 100000 > awk_output > 50000: self.subsample_flag = 0.4
-			elif 50000 > awk_output > 25000: self.subsample_flag = 0.6
+			if awk_output > 100000: self.subsample_flag = 0.254
+			elif 100000 > awk_output > 50000: self.subsample_flag = 0.5
+			elif 50000 > awk_output > 25000: self.subsample_flag = 0.75
 
 		if not self.broad_flag:
-			forward_reads = self.subsample_input(self.sequencepair_object.get_fwreads(), 'R1')
-			reverse_reads = self.subsample_input(self.sequencepair_object.get_rvreads(), 'R2')
+			if awk_output >= 2500:
+				forward_reads = self.subsample_input(self.sequencepair_object.get_fwreads(), 'R1')
+				reverse_reads = self.subsample_input(self.sequencepair_object.get_rvreads(), 'R2')
+			else:
+				forward_reads = self.sequencepair_object.get_fwreads()
+				reverse_reads = self.sequencepair_object.get_rvreads()
 		else:
 			forward_reads = self.sequencepair_object.get_fwreads()
 			reverse_reads = self.sequencepair_object.get_rvreads()
+
 		self.sequencepair_object.set_fwreads(forward_reads)
 		self.sequencepair_object.set_rvreads(reverse_reads)
 
@@ -169,34 +170,61 @@ class SeqAlign:
 		## Align the two FastQ files in the pair
 		if self.individual_allele is not None: typical_flag = 'atypical'
 		else: typical_flag = 'typical'
-		fw_csv, forward_distribution_dictionary, forward_report, forward_assembly, fwmapped_pcnt, fwmapped_count = self.execute_alignment(forward_index,forward_reads,'Aligning forward reads..','R1',typical_flag)
-		rv_csv, reverse_distribution_dictionary, reverse_report, reverse_assembly, rvmapped_pcnt, rvmapped_count = self.execute_alignment(reverse_index,reverse_reads,'Aligning reverse reads..','R2',typical_flag)
+		forward_distribution, forward_report, forward_assembly, fwmapped_pcnt, fwmapped_count, fwremoved_count = self.execute_alignment(forward_index,forward_reads,'Aligning forward reads..','R1',typical_flag)
+		reverse_distribution, reverse_report, reverse_assembly, rvmapped_pcnt, rvmapped_count, rvremoved_count = self.execute_alignment(reverse_index,reverse_reads,'Aligning reverse reads..','R2',typical_flag)
 		self.align_report.append(forward_report); self.align_report.append(reverse_report)
+
+		##
+		## If the user requested to group alignment output.. do so..
+		if self.sequencepair_object.get_groupflag():
+			try:
+				os.makedirs(self.sequencepair_object.get_instancepath())
+			except OSError as exc:
+					if exc.errno == errno.EEXIST and os.path.isdir(self.sequencepair_object.get_instancepath()):pass
+					else: raise
+
+			forward_samfi = self.alignment_suffix+'_R1.bam'
+			forward_idxfi = self.alignment_suffix+'_R1.bam.bai'
+			reverse_samfi = self.alignment_suffix+'_R2.bam'
+			reverse_idxfi = self.alignment_suffix+'_R2.bam.bai'
+
+			fw_assem = os.path.join(self.sequencepair_object.get_instancepath(), forward_samfi)
+			target_fwidxfi = os.path.join(self.sequencepair_object.get_instancepath(), forward_idxfi)
+			rv_assem = os.path.join(self.sequencepair_object.get_instancepath(), reverse_samfi)
+			target_rvidxfi = os.path.join(self.sequencepair_object.get_instancepath(), reverse_idxfi)
+
+			os.rename(forward_assembly, fw_assem)
+			os.rename(forward_assembly+'.bai', target_fwidxfi)
+			os.rename(reverse_assembly, rv_assem)
+			os.rename(reverse_assembly+'.bai', target_rvidxfi)
+
+			forward_assembly = fw_assem
+			reverse_assembly = rv_assem
 
 		##
 		## Update object parameters with appropriate distribution/assembly
 		if not self.individual_allele:
-			self.sequencepair_object.set_fwdist(fw_csv)
-			self.sequencepair_object.set_rvdist(rv_csv)
-			self.sequencepair_object.set_fwdict(forward_distribution_dictionary)
-			self.sequencepair_object.set_rvdict(reverse_distribution_dictionary)
+			self.sequencepair_object.set_fwdist(forward_distribution)
+			self.sequencepair_object.set_rvdist(reverse_distribution)
 			self.sequencepair_object.set_fwassembly(forward_assembly)
 			self.sequencepair_object.set_rvassembly(reverse_assembly)
 			self.sequencepair_object.set_fwalnpcnt(fwmapped_pcnt)
 			self.sequencepair_object.set_rvalnpcnt(rvmapped_pcnt)
 			self.sequencepair_object.set_fwalncount(fwmapped_count)
 			self.sequencepair_object.set_rvalncount(rvmapped_count)
+			self.sequencepair_object.set_fwalnrmvd(fwremoved_count)
+			self.sequencepair_object.set_rvalnrmvd(rvremoved_count)
 		else:
-			self.individual_allele.set_fwdist(fw_csv)
-			self.individual_allele.set_rvdist(rv_csv)
-			self.individual_allele.set_fwdict(forward_distribution_dictionary)
-			self.individual_allele.set_rvdict(reverse_distribution_dictionary)
+			self.individual_allele.set_fwdist(forward_distribution)
+			self.individual_allele.set_rvdist(reverse_distribution)
 			self.individual_allele.set_fwassembly(forward_assembly)
 			self.individual_allele.set_rvassembly(reverse_assembly)
 			self.individual_allele.set_fwalnpcnt(fwmapped_pcnt)
 			self.individual_allele.set_rvalnpcnt(rvmapped_pcnt)
 			self.individual_allele.set_fwalncount(fwmapped_count)
 			self.individual_allele.set_rvalncount(rvmapped_count)
+			self.individual_allele.set_fwalnrmvd(fwremoved_count)
+			self.individual_allele.set_rvalnrmvd(rvremoved_count)
 
 	def execute_alignment(self, reference_index, target_fqfile, feedback_string, io_index, typical_flag):
 
@@ -218,7 +246,7 @@ class SeqAlign:
 		##
 		##User feedback on alignment progress.. maybe improve later
 		##if you're reading this and want better feedback, you probably know 'htop' exists
-		log.info('{}{}{}{}'.format(clr.bold,'shda__ ',clr.end,feedback_string))
+		log.info('{}{}{}{}'.format(clr.bold,'shd__ ',clr.end,feedback_string))
 		sample_string = '{}_{}_{}'.format(self.sample_root, io_index, typical_flag)
 		alignment_outdir = os.path.join(self.target_output, sample_string)
 		if os.path.exists(alignment_outdir):
@@ -246,10 +274,7 @@ class SeqAlign:
 		unpaired_pairing_penalty    :: -U <INT>      :: penalty for unpaired read pair [17]
 		"""
 
-		##
-		## ALSPAC atypical realignment fuckery
-		if type(reference_index) == tuple: reference_index = reference_index[0]
-		read_group_header = '@RG\tID:{}\tSM:{}\tPL:{}\tLB:{}'.format('ScaleHD-ALN',self.sequencepair_object.get_label(),
+		read_group_header = '@RG\\tID:{}\\tSM:{}\\tPL:{}\\tLB:{}'.format('ScaleHD-ALSPAC-ALN',self.sequencepair_object.get_label(),
 																	 'ILLUMINA',self.instance_params.config_dict['JobName'])
 		bwa_process = subprocess.Popen(['bwa', 'mem', '-t', str(THREADS), '-k', min_seed_length,
 										'-w', band_width, '-r', seed_length_extension,
@@ -258,6 +283,7 @@ class SeqAlign:
 										'-E', gap_extend_penalty, '-L', prime_clipping_penalty,
 										'-U', unpaired_pairing_penalty, '-R', read_group_header, reference_index, target_fqfile],
 									    stdout=aln_outfi, stderr=subprocess.PIPE)
+
 		bwa_error = bwa_process.communicate()[1]
 		if 'illegal' in bwa_error: raise Exception('Illegal BWA behaviour: {}'.format(bwa_error))
 		if '[E::' in bwa_error: raise Exception('Illegal BWA behaviour: {}'.format(bwa_error))
@@ -276,7 +302,7 @@ class SeqAlign:
 		## Create the relevant objects without purging (i.e. -e was present at CLI)
 		flagstat_path = '{}/{}'.format(alignment_outdir, 'AlignmentStats.txt')
 		if self.enshrine_flag:
-			csv_path, hashed_dictionary, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, aln_outpath)
+			csv_path, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, aln_outpath)
 			sys.stdout.flush()
 			## Run samtools flagstat on alignment file
 			## Set allele object's flagstat file variable..
@@ -292,11 +318,12 @@ class SeqAlign:
 			mapped_pcnt = [x for x in (flagstat_output[0].split('\n')) if '%' in x]
 			aln_pcnt = str(mapped_pcnt[0]).split('(')[1].rsplit('%')[0]
 			aln_count = mapped_pcnt[0].split(' +')[0]
+			removed_reads = 0
 
 		## Otherwise -e wasn't present (default), and we purge all non-uniquely mapped reads
 		else:
 			purged_sam, flagstat_output, pre_purge, post_purge = purge_alignment_map(alignment_outdir, aln_outpath)
-			csv_path, hashed_dictionary, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, purged_sam)
+			csv_path, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, purged_sam)
 			sys.stdout.flush()
 
 			## Write output to file..
@@ -311,8 +338,9 @@ class SeqAlign:
 			## calculate difference between pre and post purge
 			aln_pcnt =  float(post_purge[0])/float(pre_purge[0])*100
 			aln_count = post_purge[0]
+			removed_reads = int(pre_purge[0]) - int(post_purge[0])
 
-		return csv_path, hashed_dictionary, alignment_report, sorted_assembly, aln_pcnt, aln_count
+		return csv_path, alignment_report, sorted_assembly, aln_pcnt, aln_count, removed_reads
 
 	def get_alignreport(self):
 		return self.align_report
@@ -323,7 +351,7 @@ class ReferenceIndex:
 
 		self.reference = reference_file
 		self.target_output = target_output
-		self.reference, self.encoder = self.index_reference()
+		self.reference = self.index_reference()
 
 	def index_reference(self):
 
@@ -331,8 +359,8 @@ class ReferenceIndex:
 		## Be paranoid, check existence/validity of reference.. again
 		reference_root = self.reference.split('/')[-1].split('.')[0]
 		if os.path.isfile(self.reference):
-			if not (self.reference.endswith('.fa') or self.reference.endswith('.fas') or self.reference.endswith('.fasta')):
-				log.critical('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Specified reference does not exist/is not fasta.'))
+			if not (self.reference.endswith('.fa') or self.reference.endswith('.fasta')):
+				log.critical('{}{}{}{}'.format(clr.red,'shd__ ',clr.end,'Specified reference does not exist/is not fasta.'))
 		##
 		## Path to store indexes for this reference
 		reference_index = os.path.join(self.target_output, reference_root)
@@ -341,38 +369,8 @@ class ReferenceIndex:
 		shutil.copy(self.reference, os.path.join(reference_index, self.reference.split('/')[-1]))
 
 		##
-		## ALSPAC Label obfuscation of reference sequence
-		## Dictionaries for storage, open input fasta via biopython
-		## Loop over generator, fill unhashed_data dictionary
-		unhashed_data = {}; hashed_data = {}
-		fasta_sequences = SeqIO.parse(open(index_copy), 'fasta')
-		for fasta in fasta_sequences:
-			unhashed_data[fasta.id] = str(fasta.seq)
-
-		##
-		## Utilise SKLearn labelencoder for obfuscation
-		## Fit an encoder object with unhashed labels from input
-		## Transform unhashed labels into hashed labels
-		le = preprocessing.LabelEncoder()
-		unhashed_labels = list(unhashed_data.keys())
-		le.fit(unhashed_labels)
-		hashed_labels = le.transform(unhashed_labels)
-
-		##
-		## Iterate over both dictionaries to attach sequence data to appropriate reference
-		for unhashed, hashed in zip(unhashed_labels, hashed_labels):
-			hashed_data[hashed] = unhashed_data[unhashed]
-
-		##
-		## Create new fasta file for encoded reference sequence (will be used in alignment)
-		index_hashed = os.path.join(reference_index, 'ENCODED_'+self.reference.split('/')[-1])
-		with open(index_hashed, "w") as outfa:
-			for ref, seq in hashed_data.iteritems():
-				outfa.write('>{}\n{}\n'.format(ref, seq))
-
-		##
 		## Indexing reference with bowtie2-build
-		build_subprocess = subprocess.Popen(['bwa', 'index', index_hashed], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		build_subprocess = subprocess.Popen(['bwa', 'index', index_copy], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		build_rawoutput = build_subprocess.communicate()
 		build_stderr = build_rawoutput[1]
 		build_subprocess.wait()
@@ -382,9 +380,8 @@ class ReferenceIndex:
 		report_file.write(build_stderr)
 		report_file.close()
 
-		return index_hashed, le
+		return index_copy
 
 	def get_index_path(self):
 
-		## ALSPAC branch returns label encoder in addition to file path
-		return self.reference, self.encoder
+		return self.reference

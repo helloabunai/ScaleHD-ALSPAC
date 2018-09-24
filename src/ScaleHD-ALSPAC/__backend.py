@@ -1,5 +1,5 @@
 #/usr/bin/python
-__version__ = 0.3
+__version__ = 0.317
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -145,7 +145,6 @@ class ConfigReader(object):
 		If all pass, guarantees that the settings dictionary is full of valid settings!
 		"""
 		trigger = False
-
 		##
 		## Main configuration instance settings
 
@@ -161,14 +160,14 @@ class ConfigReader(object):
 		if not os.path.isfile(forward_reference):
 			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified forward reference file could not be found.'))
 			trigger = True
-		if not (forward_reference.endswith('.fa') or forward_reference.endswith('.fas') or forward_reference.endswith('.fasta')):
+		if not (forward_reference.endswith('.fa') or forward_reference.endswith('.fasta')):
 			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified forward reference file is not a fa/fas file.'))
 			trigger = True
 		reverse_reference = self.config_dict['@reverse_reference']
 		if not os.path.isfile(reverse_reference):
 			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified reverse reference file could not be found.'))
 			trigger = True
-		if not (reverse_reference.endswith('fa') or reverse_reference.endswith('.fas') or reverse_reference.endswith('.fasta')):
+		if not (reverse_reference.endswith('fa') or reverse_reference.endswith('.fasta')):
 			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified reverse reference file is not a fa/fas file.'))
 			trigger = True
 		if forward_reference.split('/')[-1] == reverse_reference.split('/')[-1]:
@@ -177,6 +176,10 @@ class ConfigReader(object):
 
 		##
 		## Instance flag settings
+		demultiplexing_flag = self.config_dict['instance_flags']['@demultiplex']
+		if not (demultiplexing_flag == 'True' or demultiplexing_flag == 'False'):
+			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Demultiplexing flag is not set to True/False.'))
+			trigger = True
 		sequence_qc_flag = self.config_dict['instance_flags']['@quality_control']
 		if not (sequence_qc_flag == 'True' or sequence_qc_flag == 'False'):
 			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Sequence Quality control flag is not set to True/False.'))
@@ -199,6 +202,49 @@ class ConfigReader(object):
 			trigger = True
 
 		##
+		## Demultiplexing flag settings
+		trim_adapter_base = ['A', 'G', 'C', 'T']
+		if demultiplexing_flag == 'True':
+			forward_adapter = self.config_dict['demultiplex_flags']['@forward_adapter']
+			for charbase in forward_adapter:
+				if charbase not in trim_adapter_base:
+					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Invalid character detected in forward_adapter demultiplexing flag.'))
+					trigger = True
+			forward_position = self.config_dict['demultiplex_flags']['@forward_position']
+			if forward_position not in ['5P', '3P', 'AP']:
+				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Given demultiplexing forward adapter position invalid! [5P, 3P, AP]'))
+				trigger = True
+
+			reverse_adapter = self.config_dict['demultiplex_flags']['@reverse_adapter']
+			for charbase in reverse_adapter:
+				if charbase not in trim_adapter_base:
+					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Invalid character detected in reverse_adapter demultiplexing flag.'))
+					trigger = True
+			reverse_position = self.config_dict['demultiplex_flags']['@reverse_position']
+			if reverse_position not in ['5P', '3P', 'AP']:
+				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Given demultiplexing reverse adapter position invalid! [5P, 3P, AP]'))
+				trigger = True
+
+			error_rate = self.config_dict['demultiplex_flags']['@error_rate']
+			if not error_rate.isdigit():
+				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified error_rate is not a valid integer.'))
+				trigger = True
+			minimum_overlap = self.config_dict['demultiplex_flags']['@min_overlap']
+			if not minimum_overlap.isdigit():
+				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified min_overlap is not a valid integer.'))
+				trigger = True
+			minimum_length = self.config_dict['demultiplex_flags']['@min_length']
+			if not minimum_length == '':
+				if not minimum_length.isdigit():
+					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified min_length is not a valid integer.'))
+					trigger = True
+			maximum_length = self.config_dict['demultiplex_flags']['@max_length']
+			if not maximum_length == '':
+				if not maximum_length.isdigit():
+					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified max_length is not a valid integer.'))
+					trigger = True
+
+		##
 		## Trimming flag settings
 		if sequence_qc_flag == 'True':
 			trimming_type = self.config_dict['trim_flags']['@trim_type']
@@ -217,7 +263,6 @@ class ConfigReader(object):
 			if not (adapter_flag in trim_adapters):
 				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified trimming adapter not valid selection.'))
 				trigger = True
-			trim_adapter_base = ['A','G','C','T']
 			forward_adapter = self.config_dict['trim_flags']['@forward_adapter']
 			for charbase in forward_adapter:
 				if charbase not in trim_adapter_base:
@@ -307,10 +352,21 @@ class ConfigReader(object):
 		##
 		## Genotype prediction flag settings
 		if genotype_flag == 'True':
-			plot_graphs = self.config_dict['prediction_flags']['@plot_graphs']
-			if not (plot_graphs == 'True' or plot_graphs == 'False'):
-				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Plot graphs flag is not True/False.'))
-				trigger = True
+			snp_observation_pcnt = self.config_dict['prediction_flags']['@snp_observation_threshold']
+			if not snp_observation_pcnt.isdigit():
+				if not int(snp_observation_pcnt) in range(1,5):
+					log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: SNP Observation value invalid! Please use 1-10.'))
+					trigger = True
+
+		variant_algorithm = self.config_dict['prediction_flags']['@algorithm_utilisation']
+		if not variant_algorithm in ['freebayes', 'gatk']:
+			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Specified variant_algorithm value is invalid. [freebayes/gatk]'))
+			trigger = True
+
+		quality_cutoff = self.config_dict['prediction_flags']['@quality_cutoff']
+		if not quality_cutoff.isdigit():
+			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: SNP Quality Cutoff value is not an integer.'))
+			trigger = True
 
 		if trigger:
 			log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'XML Config: Failure, exiting.'))
@@ -423,7 +479,6 @@ def sanitise_inputs(parsed_arguments):
 			if not check_input_files('.xml',xmlfile):
 				log.error('{}{}{}{}'.format(Colour.red, 'shd__ ', Colour.end, 'Specified config file is not an XML file.'))
 				trigger = True
-
 	return trigger
 
 def extract_data(input_data_directory):
@@ -515,14 +570,16 @@ def initialise_libraries(instance_params):
 	## Subfunction for recycling code
 	## Calls UNIX type for checking binaries present
 	## Changed from WHICH as apparently type functions over different shells/config files
-	def type_func(alias):
-		alias_subprocess = subprocess.Popen(['type', alias], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		alias_result = alias_subprocess.communicate()
-		alias_subprocess.wait()
-		if alias_result[0] == '':
-			if 'not found' in alias_result[1]:
-				log.critical('{}{}{}{}{}'.format(Colour.red,'shd__ ',Colour.end,'Missing alias: ', alias, '. Not aliased in .bash_profile!'))
-				raise ScaleHDException
+	def type_func(binary):
+		binary_result = []
+		binary_string = 'type {}'.format(binary)
+		binary_subprocess = subprocess.Popen([binary_string], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		binary_result = binary_subprocess.communicate()
+		binary_subprocess.wait()
+
+		if 'not found' in binary_result[0] or binary_result[1]:
+			log.critical('{}{}{}{}{}'.format(Colour.red,'shd__ ',Colour.end,'Missing binary: ', binary, '!'))
+			raise ScaleHDException
 
 	##
 	## To determine which binaries to check for
@@ -562,6 +619,8 @@ def initialise_libraries(instance_params):
 		except ScaleHDException: trigger=True
 	if snp_calling == 'True':
 		try: type_func('picard')
+		except ScaleHDException: trigger=True
+		try: type_func('freebayes')
 		except ScaleHDException: trigger=True
 		try: type_func('gatk')
 		except ScaleHDException: trigger = True
