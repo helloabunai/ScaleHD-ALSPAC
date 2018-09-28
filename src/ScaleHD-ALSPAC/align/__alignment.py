@@ -16,9 +16,12 @@ import logging as log
 from ..__backend import Colour as clr
 from ..seq_qc.__quality_control import THREADS
 
-def purge_alignment_map(bwamem_output):
+def purge_alignment_map(alignment_outdir, alignment_outfile):
+	purged_assembly = '{}{}'.format(alignment_outdir, '/assembly_unique.bam')
+	purged_file = open(purged_assembly, 'w')
+
 	## Readcount on pre-purged assembly (100% of aligned reads present)
-	prepurge_readcount = subprocess.Popen(['samtools', 'flagstat', bwamem_output],
+	prepurge_readcount = subprocess.Popen(['samtools', 'flagstat', alignment_outfile],
 							  stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
 	premapped_pcnt = [x for x in (prepurge_readcount[0].split('\n')) if '%' in x]
@@ -30,9 +33,9 @@ def purge_alignment_map(bwamem_output):
 	prealn_count = premapped_pcnt[0].split(' +')[0]; pre_purge = (prealn_count, prealn_pcnt)
 
 	## purge for uniquely mapped reads
-	view_subprocess = subprocess.Popen(['samtools', 'view', '-q', '1', '-b', '-@', str(THREADS), bwamem_output], stdout=subprocess.PIPE)
-	purged_assembly = view_subprocess.stdout.read()
+	view_subprocess = subprocess.Popen(['samtools', 'view', '-q', '1', '-b', '-@', str(THREADS), alignment_outfile], stdout=purged_file)
 	view_subprocess.wait()
+	purged_file.close()
 
 	## Readcount on post-purged assembly (100% minus purged% present)
 	postpurge_readcount = subprocess.Popen(['samtools', 'flagstat', purged_assembly],
@@ -45,34 +48,32 @@ def purge_alignment_map(bwamem_output):
 	except IndexError:
 		raise Exception('No reads aligned at all in this sample. Cannot progress.')
 
-	## both flagstat output required
+	## both flagstat output for writing to report file
 	flagstat_output = (prepurge_readcount, postpurge_readcount)
+	os.remove(alignment_outfile)
 	return purged_assembly, flagstat_output, pre_purge, post_purge
 
-def extract_repeat_distributions(alignment_output):
+def extract_repeat_distributions(sample_root, alignment_outdir, alignment_outfile):
 
 	##
 	## Scrapes repeat distribution from alignment
-	view_subprocess = subprocess.Popen(['samtools', 'view', '-bS', '-@', str(THREADS), alignment_output], stdout=subprocess.PIPE)
-	sort_subprocess = subprocess.Popen(['samtools', 'sort', '-@', str(THREADS), '-'], stdin=view_subprocess.stdout, stdout=subprocess.PIPE)
-	sorted_output = sort_subprocess.stdout.read()
+	sorted_assembly = '{}{}'.format(alignment_outdir, '/assembly_sorted.bam')
+	view_subprocess = subprocess.Popen(['samtools', 'view', '-bS', '-@', str(THREADS), alignment_outfile], stdout=subprocess.PIPE)
+	sort_subprocess = subprocess.Popen(['samtools', 'sort', '-@', str(THREADS), '-', '-o', sorted_assembly], stdin=view_subprocess.stdout)
 	view_subprocess.wait(); sort_subprocess.wait()
 
 	##
 	## Index the assembly so it is ordered
-	index_subprocess = subprocess.Popen(['samtools', 'index', sorted_output], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	index_subprocess = subprocess.Popen(['samtools', 'index', sorted_assembly], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	index_subprocess.wait()
 
 	##
 	## Create an output txt file, output samtools idxstats to this file
-	idxstats_subprocess = subprocess.Popen(['samtools', 'idxstats', sorted_output], stdout=subprocess.PIPE)
-	idxstat_output = idxstats_subprocess.stdout.read()
+	raw_repeat_distribution = os.path.join(alignment_outdir, 'RawRepeatDistribution.txt')
+	rrd_file = open(raw_repeat_distribution, 'w')
+	idxstats_subprocess = subprocess.Popen(['samtools', 'idxstats', sorted_assembly], stdout=rrd_file)
 	idxstats_subprocess.wait()
-
-	## TODO FROM HERE TOMORROW
-	## create idxstat output into object that is the same as the cleaned raw_repeat_distro
-	## return that object as distro_object alongside sorted_assembly
-	## TODO FROM HERE TOMORROW
+	rrd_file.close()
 
 	##
 	## Text to CSV, clean up text distribution
@@ -84,11 +85,16 @@ def extract_repeat_distributions(alignment_output):
 
 	filestring = sample_root + '\n'
 	filestring += data_string
+	csv_path = os.path.join(alignment_outdir, sample_root+'_RepeatDistribution.csv')
 	csv_file = open(csv_path, 'w')
 	csv_file.write(filestring)
 	csv_file.close()
+	os.remove(raw_repeat_distribution)
 
-	return distribution_object, sorted_assembly
+	##
+	## We return this single csv for when the function is called from shd/prediction
+	os.remove(alignment_outfile)
+	return csv_path, sorted_assembly
 
 class SeqAlign:
 
@@ -247,6 +253,8 @@ class SeqAlign:
 		if not os.path.exists(alignment_outdir):
 			os.makedirs(alignment_outdir)
 		self.alignment_suffix = alignment_outdir.split('/')[-1]
+		aln_outpath = '{}/{}'.format(alignment_outdir, 'assembly.sam')
+		aln_outfi = open(aln_outpath, 'w')
 
 		"""
 		THREADS                     :: -t <INT>      :: CPU threads to utilise [1]
@@ -264,7 +272,7 @@ class SeqAlign:
 		unpaired_pairing_penalty    :: -U <INT>      :: penalty for unpaired read pair [17]
 		"""
 
-		read_group_header = '@RG\\tID:{}\\tSM:{}\\tPL:{}\\tLB:{}'.format('ScaleHD-ALSPAC-ALN',self.sequencepair_object.get_label(),
+		read_group_header = '@RG\\tID:{}\\tSM:{}\\tPL:{}\\tLB:{}'.format('ScaleHD-ALN',self.sequencepair_object.get_label(),
 																	 'ILLUMINA',self.instance_params.config_dict['JobName'])
 		bwa_process = subprocess.Popen(['bwa', 'mem', '-t', str(THREADS), '-k', min_seed_length,
 										'-w', band_width, '-r', seed_length_extension,
@@ -272,20 +280,19 @@ class SeqAlign:
 										'-A', seq_match_score, '-B', mismatch_penalty, '-O', indel_penalty,
 										'-E', gap_extend_penalty, '-L', prime_clipping_penalty,
 										'-U', unpaired_pairing_penalty, '-R', read_group_header, reference_index, target_fqfile],
-									    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+									    stdout=aln_outfi, stderr=subprocess.PIPE)
 
-		##ALSPAC
-		bwamem_output = bwa_process.stdout.read()
 		bwa_error = bwa_process.communicate()[1]
 		if 'illegal' in bwa_error: raise Exception('Illegal BWA behaviour: {}'.format(bwa_error))
 		if '[E::' in bwa_error: raise Exception('Illegal BWA behaviour: {}'.format(bwa_error))
 		bwa_process.wait()
+		aln_outfi.close()
 
 		##
 		## If the user specified to maintain the assembly (i.e. not remove non-uniquely mapped reads)
 		## Create the relevant objects without purging (i.e. -e was present at CLI)
 		if self.enshrine_flag:
-			distribution_object, sorted_assembly = extract_repeat_distributions(bwamem_output)
+			csv_path, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, aln_outpath)
 			sys.stdout.flush()
 			## Run samtools flagstat on alignment file
 			## Set allele object's flagstat file variable..
@@ -293,7 +300,7 @@ class SeqAlign:
 												stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			flagstat_output = flagstat_process.communicate(); flagstat_process.wait()
 
-			## Determine % mapped for this assembly
+			## determine mapped pcnt
 			mapped_pcnt = [x for x in (flagstat_output[0].split('\n')) if '%' in x]
 			aln_pcnt = str(mapped_pcnt[0]).split('(')[1].rsplit('%')[0]
 			aln_count = mapped_pcnt[0].split(' +')[0]
@@ -301,8 +308,8 @@ class SeqAlign:
 
 		## Otherwise -e wasn't present (default), and we purge all non-uniquely mapped reads
 		else:
-			purged_sam, flagstat_output, pre_purge, post_purge = purge_alignment_map(bwamem_output)
-			distribution_object, sorted_assembly = extract_repeat_distributions(bwamem_output)
+			purged_sam, flagstat_output, pre_purge, post_purge = purge_alignment_map(alignment_outdir, aln_outpath)
+			csv_path, sorted_assembly = extract_repeat_distributions(self.sample_root, alignment_outdir, purged_sam)
 			sys.stdout.flush()
 
 			## calculate difference between pre and post purge
@@ -310,7 +317,7 @@ class SeqAlign:
 			aln_count = post_purge[0]
 			removed_reads = int(pre_purge[0]) - int(post_purge[0])
 
-		return distribution_object, sorted_assembly, aln_pcnt, aln_count, removed_reads
+		return csv_path, sorted_assembly, aln_pcnt, aln_count, removed_reads
 
 class ReferenceIndex:
 

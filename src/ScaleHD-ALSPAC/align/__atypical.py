@@ -390,16 +390,6 @@ class ScanAtypical:
 		sequencepair_object.set_primary_allele(primary_object)
 		sequencepair_object.set_secondary_allele(secondary_object)
 
-		##
-		## Generate an atypical report for writing
-		self.atypical_report = os.path.join(self.sequence_path, 'AtypicalReport.txt')
-		report_file = open(self.atypical_report, 'w')
-		report_file.write('{}{}\n{}{}\n{}{}\n{}{}'.format('Primary Allele: ', primary_object.get_reflabel(),
-			'Primary Original: ', primary_object.get_originalreference(),
-			'Secondary Allele: ', secondary_object.get_reflabel(),
-			'Secondary Original: ', secondary_object.get_originalreference()))
-		report_file.close()
-
 	def process_assembly(self):
 		"""
 		Function which processes the input SAM for atypical scanning.
@@ -948,9 +938,6 @@ class ScanAtypical:
 												 input_reference['EstimatedCCG'], input_reference['EstimatedCCT'])
 
 		return genotype_label, caacag_count, ccgcca_count
-
-	def get_atypicalreport(self):
-		return self.atypical_report
 
 	@staticmethod
 	def scraper(intv_dict, intervening_str):

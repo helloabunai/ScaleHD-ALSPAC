@@ -425,6 +425,24 @@ class DataLoader:
 							 DESCR=descr_text,
 							 ENCDR=le)
 
+def get_immediate_subdirectories(a_dir):
+	return [name for name in os.listdir(a_dir)
+		if os.path.isdir(os.path.join(a_dir, name))]
+
+def purge(input_args):
+
+	outdir = input_args.output[0]
+	jobname = input_args.jobname
+
+	out_root = os.path.join(outdir, jobname)
+	for candidate_dir in get_immediate_subdirectories(out_root):
+		if candidate_dir == 'Indexes':
+			pass
+		else:
+			try:
+				shutil.rmtree(os.path.join(out_root, candidate_dir, 'Align'))
+			except Exception as e:
+				print e
 
 def parse_boolean(boolean_value):
 
@@ -629,49 +647,29 @@ def sanitise_outputs(jobname, output_argument):
 
 	run_dir = ''
 	output_root = output_argument[0]
-	if jobname:
-		target_output = os.path.join(output_root, jobname)
-		if not os.path.exists(target_output):
-			log.info('{}{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Creating Output with prefix: ', jobname))
+	target_output = os.path.join(output_root, jobname)
+	if not os.path.exists(target_output):
+		log.info('{}{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Creating Output with prefix: ', jobname))
+		run_dir = os.path.join(output_root, jobname)
+		mkdir_p(run_dir)
+	else:
+		purge_choice = ''
+		while True:
+			purge_choice = raw_input('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Job folder already exists. Delete existing folder? Y/N: '))
+			if not (purge_choice.lower() == 'y') and not (purge_choice.lower() == 'n'):
+				log.info('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'Invalid input. Please input Y or N.'))
+				continue
+			else:
+				break
+
+		if purge_choice.lower() == 'y':
+			log.info('{}{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Clearing pre-existing Jobname Prefix: ', jobname))
 			run_dir = os.path.join(output_root, jobname)
+			if os.path.exists(run_dir):
+				shutil.rmtree(run_dir, ignore_errors=True)
 			mkdir_p(run_dir)
 		else:
-			purge_choice = ''
-			while True:
-				purge_choice = raw_input('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Job folder already exists. Delete existing folder? Y/N: '))
-				if not (purge_choice.lower() == 'y') and not (purge_choice.lower() == 'n'):
-					log.info('{}{}{}{}'.format(Colour.red, 'shda__ ', Colour.end, 'Invalid input. Please input Y or N.'))
-					continue
-				else:
-					break
-
-			if purge_choice.lower() == 'y':
-				log.info('{}{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Clearing pre-existing Jobname Prefix: ', jobname))
-				run_dir = os.path.join(output_root, jobname)
-				if os.path.exists(run_dir):
-					shutil.rmtree(run_dir, ignore_errors=True)
-				mkdir_p(run_dir)
-			else:
-				raise Exception('User chose not to delete pre-existing Job folder. Cannot write output.')
-
-	else:
-		## Ensures root output is a real directory
-		## Generates folder name based on date (for run ident)
-		date = datetime.date.today().strftime('%d-%m-%Y')
-		walltime = datetime.datetime.now().strftime('%H%M%S')
-		today = date + '-' + walltime
-
-		## If the user specified root doesn't exist, make it
-		## Then make the run directory for datetime
-		if not os.path.exists(output_root):
-			log.info('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Creating output root... '))
-			mkdir_p(output_root)
-		run_dir = os.path.join(output_root, 'ScaleHDRun_'+today)
-		log.info('{}{}{}{}'.format(Colour.bold, 'shda__ ', Colour.end, 'Creating instance run directory.. '))
-		mkdir_p(run_dir)
-
-		## Inform user it's all gonna be okaaaayyyy
-		log.info('{}{}{}{}'.format(Colour.green, 'shda__ ', Colour.end, 'Output directories OK!'))
+			raise Exception('User chose not to delete pre-existing Job folder. Cannot write output.')
 
 	return run_dir
 

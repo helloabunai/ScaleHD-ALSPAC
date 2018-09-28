@@ -61,7 +61,6 @@ class AlleleGenotyping:
 			log.warn('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, '1+ allele(s) failed peak validation. Precision not guaranteed.'))
 			self.warning_triggered = True
 			self.sequencepair_object.set_peakinspection_warning(True)
-		self.n_align_dist()
 		self.calculate_score()
 		self.render_graphs()
 		self.set_report()
@@ -1108,11 +1107,13 @@ class AlleleGenotyping:
 
 			##
 			## Check DSP generated allele label vs FOD results
+			##CCG
 			if int(allele.get_reflabel().split('_')[3]) != int(allele.get_fodccg()):
 				allele.set_referencelabel('{}_{}_{}_{}_{}'.format(allele.get_fodcag(), novel_caacag,
 															  novel_ccgcca, allele.get_fodccg(),
 															  allele.get_cct()))
 				allele.set_fodoverwrite(True)
+
 			if int(allele.get_reflabel().split('_')[0]) != int(allele.get_fodcag()):
 				allele.set_referencelabel('{}_{}_{}_{}_{}'.format(allele.get_fodcag(), novel_caacag,
 															  novel_ccgcca, allele.get_fodccg(),
@@ -1129,64 +1130,7 @@ class AlleleGenotyping:
 						self.sequencepair_object.set_missed_expansion(True)
 						self.sequencepair_object.set_diminishedpeaks(True)
 
-			##
-			## If failed, write intermediate data to report
-			if not self.pass_vld:
-				inspection_logfi = os.path.join(self.sequencepair_object.get_predictpath(),
-												'{}{}'.format(allele.get_header(), 'PeakInspectionLog.txt'))
-				inspection_str = '{}  {}\n{}: {}\n{}: {}\n' \
-								 '{}: {}\n{}: {}\n{}: {}\n' \
-								 '{}: {}\n{}: {}\n{}: {}\n' \
-								 '{}: {}\n{}: {}\n'.format(
-								 '>> Peak Inspection Failure','Intermediate results log',
-								 'Investigating CCG', allele.get_ccg(),
-								 'Interpolation warning', allele.get_interpolation_warning(),
-								 'Interpolation distance', allele.get_interpdistance(),
-								 'Reads (%) surrounding peak', allele.get_vicinityreads(),
-								 'Peak dropoff', dropoff_list,
-								 'NMinus ratio', nminus_overn,
-								 'NMinus warning', allele.get_nminuswarninglevel(),
-								 'NPlus ratio', nplus_overn,
-								 'NPlus warning', allele.get_npluswarninglevel(),
-								 'Unexpected Peaks', allele.get_unexpectedpeaks())
-				with open(inspection_logfi,'w') as logfi:
-					logfi.write(inspection_str)
-					logfi.close()
-
 		return self.pass_vld
-
-	def n_align_dist(self):
-
-		"""
-		Function to align alleles of the current sample to the same n-point as any previous alleles processed
-		in this run. Append the padded distributions to the same CSV file for in-depth somatic mosaicism
-		studies..
-		:return: fuck all
-		"""
-
-		##
-		## For each allele in the sample get the target CCG distribution
-		## Pad it so that N (the determined genotype) is at the same index in the output file
-		## output the padded distribution and close the file
-		for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
-			if allele.get_header() == 'PRI': target = self.primary_original
-			if allele.get_header() == 'SEC': target = self.secondary_original
-			fix_target = ','.join(['%.5f' % num for num in target])
-
-			anchor = 203
-			anchor_port = anchor - allele.get_cag()
-			anchor_starboard = anchor_port + 200
-			left_buffer = '-,'*anchor_port
-			right_buffer = '-,'*(403-anchor_starboard)
-			padded_dist = left_buffer+fix_target+right_buffer[:-1]
-
-			###
-			### distribution fixed but csv writing incorrect list still
-			sample_output = '{},{},{},{}\n'.format(self.sequencepair_object.get_label(), allele.get_header(),
-													  allele.get_allelegenotype(), padded_dist)
-
-			with open(self.padded_target, 'a') as distfi: distfi.write(sample_output)
-			distfi.close()
 
 	def render_graphs(self):
 
@@ -1200,13 +1144,29 @@ class AlleleGenotyping:
 		sec_rvarray = self.sequencepair_object.get_secondaryallele().get_rvarray()
 		pri_fwarray = self.sequencepair_object.get_primaryallele().get_fwarray()
 		sec_fwarray = self.sequencepair_object.get_secondaryallele().get_fwarray()
-
 		predpath = self.sequencepair_object.get_predictpath()
 
 		def graph_subfunction(x, y, axis_labels, xticks, peak_index, predict_path, file_handle, prefix='', graph_type=None, neg_anchor=False):
 
 			#seaborn palette
 			sns.set(style='darkgrid')
+
+			## ALSPAC allele masking
+			## sum all values above 31 if required
+			truncated_dist = []; trigger = False
+			if len(y) == 200:
+				truncated_dist = y[0:30]
+				truncated_dist = np.append(truncated_dist, sum(y[30:]))
+				truncated_dist = np.append(truncated_dist, [0]*169)
+				trigger = True
+			if trigger: y = truncated_dist
+
+			## ALSPAC alter indexes if larger than cutoff, but as integer
+			## for plotting rather than labelling
+			for idx, item in enumerate(peak_index):
+				if item >= 31:
+					##offset by 0 as distro is not 1-indexed
+					peak_index[idx] = 30
 
 			x = np.linspace(x[0],x[1],x[2])
 			fig, ax = plt.subplots(figsize=(10, 6)); plt.title(prefix+self.sequencepair_object.get_label())
@@ -1215,8 +1175,14 @@ class AlleleGenotyping:
 				## ticker forced to integers (instead of floats)
 				from matplotlib.ticker import FuncFormatter
 				## format xtick labels correctly (CCG vs CAG distributions)
-				if neg_anchor: xtickslabel = xticks[2]
-				else: xtickslabel = [i-1 for i in xticks[2]]
+				if neg_anchor:
+					xtickslabel = xticks[2]
+				else:
+					try:
+						xtickslabel = [i-1 for i in xticks[2]]
+					except TypeError:
+						xtickslabel = xticks[2]
+
 				## plot bar data, remove x labels
 				sns.barplot(x,y); plt.xticks([])
 				## re-add x labels above respective bar plots
@@ -1230,6 +1196,11 @@ class AlleleGenotyping:
 				plt.xlim(xticks[1][0], xticks[1][1])
 				pplot(x,y,peak_index)
 			peak_index = [i+1 for i in peak_index]
+			## ALSPAC alter indexes if larger than cutoff, but as string
+			## for labelling rather than plot calculation
+			for idx, item in enumerate(peak_index):
+				if item >= 31:
+					peak_index[idx] = '31+'
 			plt.legend(['Genotype: {}'.format(peak_index)])
 			plt.savefig(os.path.join(predict_path, file_handle), format='pdf')
 			plt.close()
@@ -1268,15 +1239,31 @@ class AlleleGenotyping:
 		sample_pdf_path = os.path.join(predpath, '{}{}'.format(self.sequencepair_object.get_label(),'.pdf'))
 		c = canvas.Canvas(sample_pdf_path, pagesize=(720,432))
 		header_string = '{}{}'.format('Sample header: ', self.sequencepair_object.get_label())
-		primary_string = '{}(CAG{}, CCG{}) ({}; {}; Confidence {}%)'.format('Primary: ', self.sequencepair_object.get_primaryallele().get_fodcag(),
+
+		## Hiya it's more ALSPAC hacker-y embarassing code
+		pri_fod_cag = ''; sec_fod_cag = ''; pri_alleletype = ''; sec_alleletype = ''
+		if self.sequencepair_object.get_primaryallele().get_fodcag() >= 31:
+			pri_fod_cag = '31+'
+			unmasked = self.sequencepair_object.get_primaryallele().get_allelegenotype().split('_')
+			if unmasked[0] >= 31: unmasked = '_'.join(['31+']+unmasked[1:])
+			pri_alleletype = unmasked
+		else: pri_fod_cag = self.sequencepair_object.get_primaryallele().get_fodcag()
+		if self.sequencepair_object.get_secondaryallele().get_fodcag() >= 31:
+			sec_fod_cag = '31+'
+			unmasked = self.sequencepair_object.get_secondaryallele().get_allelegenotype().split('_')
+			if unmasked[0] >= 31: unmasked = '_'.join(['31+']+unmasked[1:])
+			sec_alleletype = unmasked
+		else: sec_fod_cag = self.sequencepair_object.get_secondaryallele().get_fodcag()
+
+		primary_string = '{}(CAG{}, CCG{}) ({}; {}; Confidence {}%)'.format('Primary: ', pri_fod_cag,
 												 self.sequencepair_object.get_primaryallele().get_fodccg(),
 												 self.sequencepair_object.get_primaryallele().get_allelestatus(),
-												 self.sequencepair_object.get_primaryallele().get_allelegenotype(),
+												 pri_alleletype,
 												 int(self.sequencepair_object.get_primaryallele().get_alleleconfidence()))
-		secondary_string = '{}(CAG{}, CCG{}) ({}; {}; Confidence {}%)'.format('Secondary: ', self.sequencepair_object.get_secondaryallele().get_fodcag(),
+		secondary_string = '{}(CAG{}, CCG{}) ({}; {}; Confidence {}%)'.format('Secondary: ', sec_fod_cag,
 												   self.sequencepair_object.get_secondaryallele().get_fodccg(),
 												   self.sequencepair_object.get_secondaryallele().get_allelestatus(),
-												   self.sequencepair_object.get_secondaryallele().get_allelegenotype(),
+												   sec_alleletype,
 												   int(self.sequencepair_object.get_secondaryallele().get_alleleconfidence()))
 
 		##########################################################
@@ -1374,6 +1361,9 @@ class AlleleGenotyping:
 					slice_prefix = '(CCG{}) ' .format(allele.get_ccg())
 				sub = target_distro[np.int64(allele.get_fodcag()-6):np.int64(allele.get_fodcag()+5)]
 				## Render the graph, append to list, close plot
+				if True in [x >= 31 for x in slice_range]:
+					slice_range = ['31+'] * 11
+
 				graph_subfunction([0,10,11], sub, ['CAG Value', 'Read Count'], ([1,11,1], [1,11], slice_range),
 								  [np.int64(allele.get_fodcag()-1)], predpath,slice_filename, prefix=slice_prefix, graph_type='bar')
 				temp_graphs.append(os.path.join(predpath,slice_filename)); plt.close()
@@ -1391,7 +1381,7 @@ class AlleleGenotyping:
 
 		##############################################
 		## CCG homozygous example					##
-		## i.e. CCG one peak, one CAG dist per peak ##
+		## i.e. CCG one peak, two CAG dist per peak ##
 		##############################################
 		if self.zygosity_state == 'HOMO':
 
@@ -1413,7 +1403,31 @@ class AlleleGenotyping:
 			if self.sequencepair_object.get_homozygoushaplotype(): lower = upper
 			else: lower = max(n for n in [pri_cag, sec_cag] if n != upper)
 			sub = target_distro[lower-6:upper+5]
+
+			## ALSPAC Masking
+			## general purpose subslice cull block
+			## finds indexes of target (31CAG)
+			target_index = 0
+			max_index = 0
+			for idx, item in enumerate(sub):
+				idxbuffer = lower-5
+				if idx+idxbuffer == 31 and target_index == 0:
+					target_index = idx
+				max_index = idx
+
+			## Then curates all values above into correct bin
+			truncated_dist = []; trigger = False
+			if target_index != 0:
+				truncated_dist = sub[0:target_index]
+				truncated_dist = np.append(truncated_dist, sum(sub[target_index:]))
+				truncated_dist = np.append(truncated_dist, [0]*(max_index-target_index))
+				trigger = True
+			if trigger: sub = truncated_dist
+
 			slice_range = range(lower-4,upper+7)
+			for idx, item in enumerate(slice_range):
+				if item >= 31:
+					slice_range[idx] = '31+'
 
 			##
 			## Render the graph, append to list, close plot

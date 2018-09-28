@@ -20,6 +20,7 @@ from multiprocessing import cpu_count
 
 ##
 ## Backend junk
+from __backend import purge
 from __backend import ConfigReader
 from __backend import Colour as clr
 from __backend import initialise_libraries
@@ -41,6 +42,7 @@ from . import predict
 ##
 ## Globals
 THREADS = cpu_count()
+ARGS = None
 
 class ScaleHDALSPAC:
 	def __init__(self):
@@ -69,9 +71,9 @@ class ScaleHDALSPAC:
 		self.parser.add_argument('-e', '--enshrine', help='Do not remove non-uniquely mapped reads from SAM files.', action='store_true')
 		self.parser.add_argument('-b', '--broadscope', help='Do not subsample fastq data in the case of high read-count.', action='store_true')
 		self.parser.add_argument('-g', '--groupsam', help='Outputs all sorted SAM files into one instance-wide output folder, rather than sample subfolders.', action='store_true')
-		self.parser.add_argument('-j', '--jobname', help='Customised folder output name. If not specified, defaults to normal output naming schema.', type=str)
+		self.parser.add_argument('-j', '--jobname', help='Customised folder output name. If not specified, defaults to normal output naming schema.', type=str, required=True)
 		self.parser.add_argument('-o', '--output', help='Output path. Specify a directory you wish output to be directed towards.', metavar='output', nargs=1, required=True)
-		self.args = self.parser.parse_args()
+		self.args = self.parser.parse_args(); global ARGS; ARGS = self.args
 		self.header = ''
 
 		##
@@ -85,6 +87,8 @@ class ScaleHDALSPAC:
 			log.basicConfig(format='%(message)s', level=log.DEBUG, filename=self.logfi)
 			log.getLogger().addHandler(log.StreamHandler())
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.'))
+			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, '!!! This version will mask allele sizes for ALSPAC PheWAS study !!!'))
+			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, '!!! Only use this version if you absolutely require this feature !!!'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'alastair.maxwell@glasgow.ac.uk\n'))
 		else:
 			log.basicConfig(format='%(message)s')
@@ -265,7 +269,7 @@ class ScaleHDALSPAC:
 				try:
 					self.quality_control(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('SeqQC')
+					current_seqpair.set_exceptionraised('SeqQC'); purge(ARGS)
 					self.append_report(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shda__ ',clr.end,'SeqQC failure on ',seqpair_lbl,str(e)))
 					continue
@@ -275,7 +279,7 @@ class ScaleHDALSPAC:
 				try:
 					self.sequence_alignment(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('SeqALN')
+					current_seqpair.set_exceptionraised('SeqALN'); purge(ARGS)
 					self.append_report(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shda__ ',clr.end,'Alignment failure on ',seqpair_lbl,str(e)))
 					continue
@@ -285,7 +289,7 @@ class ScaleHDALSPAC:
 				try:
 					self.atypical_scanning(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('DSP')
+					current_seqpair.set_exceptionraised('DSP'); purge(ARGS)
 					self.append_report(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Atypical scanning failure on ', seqpair_lbl, str(e)))
 					continue
@@ -300,7 +304,7 @@ class ScaleHDALSPAC:
 							try:
 								self.sequence_realignment(current_seqpair, allele)
 							except Exception, e:
-								current_seqpair.set_exceptionraised('SeqRE-ALN')
+								current_seqpair.set_exceptionraised('SeqRE-ALN'); purge(ARGS)
 								self.append_report(current_seqpair)
 								log.info('{}{}{}{}{}: {}'.format(clr.red,'shda__ ',clr.end,'Realignment failure on ',seqpair_lbl,str(e)))
 								continue
@@ -332,7 +336,7 @@ class ScaleHDALSPAC:
 				try:
 					self.allele_genotyping(current_seqpair, invalid_data)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('Genotype')
+					current_seqpair.set_exceptionraised('Genotype'); purge(ARGS)
 					self.append_report(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
 					continue
@@ -342,7 +346,7 @@ class ScaleHDALSPAC:
 				try:
 					self.snp_calling(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('SNP Calling')
+					current_seqpair.set_exceptionraised('SNP Calling'); purge(ARGS)
 					self.append_report(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'SNP calling failure on ',seqpair_lbl, str(e)))
 					continue
@@ -351,10 +355,10 @@ class ScaleHDALSPAC:
 				#############################
 				try:
 					self.collate_graphs(current_seqpair)
-					current_seqpair.set_exceptionraised('N/A')
+					current_seqpair.set_exceptionraised('N/A'); purge(ARGS)
 					self.append_report(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('Report/Graph')
+					current_seqpair.set_exceptionraised('Report/Graph'); purge(ARGS)
 					self.append_report(current_seqpair)
 					log.info('{}{}{}{}{}: {}'.format(clr.red, 'shda__ ', clr.end, 'Report/Graphing failure on ', seqpair_lbl, str(e)))
 				gc.collect()
@@ -385,7 +389,7 @@ class ScaleHDALSPAC:
 		alignment_flag = self.instance_params.config_dict['instance_flags']['@sequence_alignment']
 		if alignment_flag == 'True':
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'Scanning for atypical alleles..'))
-			sequencepair_object.set_atypicalreport(align.ScanAtypical(sequencepair_object, self.instance_params).get_atypicalreport())
+			align.ScanAtypical(sequencepair_object, self.instance_params)
 			atypical_count = sequencepair_object.get_atypicalcount()
 			if atypical_count != 0:
 				log.info('{}{}{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'Scanning complete! ',str(sequencepair_object.get_atypicalcount()),' atypical allele(s) present.'))
@@ -482,6 +486,19 @@ class ScaleHDALSPAC:
 				rep_str += '{},'.format(func_output)
 			return rep_str
 
+		## hello it's more hacky ALSPAC masking
+		pri_orig = primary_allele.get_reflabel()
+		pri_unmasked = pri_orig.split('_')
+		if int(pri_unmasked[0]) >= 31: pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
+		else: pri_unmasked = pri_orig
+		primary_allele.set_referencelabel(pri_unmasked)
+		## hello it's more hacky ALSPAC masking
+		sec_orig = secondary_allele.get_reflabel()
+		sec_unmasked = sec_orig.split('_')
+		if int(sec_unmasked[0]) >= 31: sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
+		else: sec_unmasked = sec_orig
+		secondary_allele.set_referencelabel(sec_unmasked)
+
 		unparsed_info = [[sequencepair_object, 'get_label'], ['NULL', 'NULL'], [primary_allele, 'get_reflabel'],
 						 [primary_allele, 'get_allelestatus'], [primary_allele, 'get_fwalncount'],
 						 [primary_allele, 'get_fwalnpcnt'], [primary_allele, 'get_fwalnrmvd'], [primary_allele, 'get_rvalncount'],
@@ -526,5 +543,6 @@ def main():
 	try:
 		ScaleHDALSPAC()
 	except KeyboardInterrupt:
+		purge(ARGS)
 		log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Fatal: Keyboard Interrupt detected. Exiting.'))
 		sys.exit(2)
