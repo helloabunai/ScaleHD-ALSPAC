@@ -487,17 +487,20 @@ class ScaleHDALSPAC:
 			return rep_str
 
 		## hello it's more hacky ALSPAC masking
-		pri_orig = primary_allele.get_reflabel()
-		pri_unmasked = pri_orig.split('_')
-		if int(pri_unmasked[0]) >= 31: pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
-		else: pri_unmasked = pri_orig
-		primary_allele.set_referencelabel(pri_unmasked)
-		## hello it's more hacky ALSPAC masking
-		sec_orig = secondary_allele.get_reflabel()
-		sec_unmasked = sec_orig.split('_')
-		if int(sec_unmasked[0]) >= 31: sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
-		else: sec_unmasked = sec_orig
-		secondary_allele.set_referencelabel(sec_unmasked)
+		try:
+			pri_orig = primary_allele.get_reflabel()
+			pri_unmasked = pri_orig.split('_')
+			if int(pri_unmasked[0]) >= 31: pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
+			else: pri_unmasked = pri_orig
+			primary_allele.set_referencelabel(pri_unmasked)
+			## hello it's more hacky ALSPAC masking
+			sec_orig = secondary_allele.get_reflabel()
+			sec_unmasked = sec_orig.split('_')
+			if int(sec_unmasked[0]) >= 31: sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
+			else: sec_unmasked = sec_orig
+			secondary_allele.set_referencelabel(sec_unmasked)
+		except AttributeError:
+			pass
 
 		unparsed_info = [[sequencepair_object, 'get_label'], ['NULL', 'NULL'], [primary_allele, 'get_reflabel'],
 						 [primary_allele, 'get_allelestatus'], [primary_allele, 'get_fwalncount'],

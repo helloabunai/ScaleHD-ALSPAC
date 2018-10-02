@@ -441,8 +441,8 @@ def purge(input_args):
 		else:
 			try:
 				shutil.rmtree(os.path.join(out_root, candidate_dir, 'Align'))
-			except Exception as e:
-				print e
+			except Exception:
+				pass
 
 def parse_boolean(boolean_value):
 
