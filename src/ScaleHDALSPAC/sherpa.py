@@ -47,11 +47,11 @@ ARGS = None
 class ScaleHDALSPAC:
 	def __init__(self):
 		"""
-		ScaleHD-ALSPAC: Automated triplet repeat genotyping for Huntington Disease
-		ScaleHD-ALSPAC has two modes of usage; sequence and batch
+		ScaleHDALSPAC: Automated triplet repeat genotyping for Huntington Disease
+		ScaleHDALSPAC has two modes of usage; sequence and batch
 		Sequence mode consists of a pipeline behaviour for genome sequence QC, alignment and genotyping
 		Batch mode consists of a linear behaviour only for genotyping (from pre-aligned files)
-		If you want a full explanation of the ways in which ScaleHD-ALSPAC can be run; scalehd --help
+		If you want a full explanation of the ways in which ScaleHDALSPAC can be run; scalehd --help
 		"""
 
 		##
@@ -64,7 +64,7 @@ class ScaleHDALSPAC:
 
 		##
 		## Argument parser from CLI
-		self.parser = argparse.ArgumentParser(prog='scalehd_alspac', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
+		self.parser = argparse.ArgumentParser(prog='scalehd_alspac', description='ScaleHDALSPAC: Automated DNA micro-satellite genotyping.')
 		self.parser.add_argument('-v', '--verbose', help='Verbose output mode. Setting this flag enables verbose output. Default: off.', action='store_true')
 		self.parser.add_argument('-c', '--config', help='Pipeline config. Specify a directory to your ArgumentConfig.xml file.', nargs=1, required=True)
 		self.parser.add_argument('-t', '--threads', help='Thread utilisation. Typically only alters third party alignment performance. Default: system max.', type=int, choices=xrange(1, THREADS+1), default=THREADS)
@@ -86,7 +86,7 @@ class ScaleHDALSPAC:
 		if self.args.verbose:
 			log.basicConfig(format='%(message)s', level=log.DEBUG, filename=self.logfi)
 			log.getLogger().addHandler(log.StreamHandler())
-			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.'))
+			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'ScaleHDALSPAC: Automated DNA micro-satellite genotyping.'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, '!!! This version will mask allele sizes for ALSPAC PheWAS study !!!'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, '!!! Only use this version if you absolutely require this feature !!!'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'alastair.maxwell@glasgow.ac.uk\n'))
@@ -100,7 +100,7 @@ class ScaleHDALSPAC:
 				pass
 			if sys.version_info[2] < 13:
 				current_user_version = '{}.{}.{}'.format(sys.version_info[0], sys.version_info[1], sys.version_info[2])
-				log.error('{}{}{}{}{}.'.format(clr.red, 'shda__ ', clr.end, 'ScaleHD-ALSPAC requires python2 2.7.13 or later!'
+				log.error('{}{}{}{}{}.'.format(clr.red, 'shda__ ', clr.end, 'ScaleHDALSPAC requires python2 2.7.13 or later!'
 																		   ' You are using: ', current_user_version))
 				sys.exit(2)
 
@@ -154,7 +154,7 @@ class ScaleHDALSPAC:
 		## A simple report file is appended after each sample pair, currently..
 		## In the future, replace with HTML based web-app, generated here?
 		## For now, just exit
-		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'ScaleHD-ALSPAC pipeline completed; exiting.'))
+		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'ScaleHDALSPAC pipeline completed; exiting.'))
 
 	def instance_data(self):
 
@@ -198,7 +198,7 @@ class ScaleHDALSPAC:
 		date_string = dt.datetime.today().strftime("%d/%m/%Y")
 		self.instance_graphs = os.path.join(self.instance_rundir, 'InstanceGraphs.pdf')
 		c = canvas.Canvas(self.instance_graphs, pagesize=(500,250))
-		first_string = 'ScaleHD-ALSPAC: Automated Huntington Disease Genotyping'
+		first_string = 'ScaleHDALSPAC: Automated Huntington Disease Genotyping'
 		second_string = 'University of Glasgow: alastair.maxwell@glasgow.ac.uk'
 		third_string = '{}{}'.format('Job Name: ', job_string)
 		fourth_string = '{}{}'.format('Run Date: ', date_string)
@@ -210,7 +210,7 @@ class ScaleHDALSPAC:
 
 	def sequence_workflow(self):
 		"""
-		Workflow for when ScaleHD-ALSPAC is being ran in config mode..
+		Workflow for when ScaleHDALSPAC is being ran in config mode..
 		Behaviours are tailored based on information extracted from the specified config XML file
 		General overview:
 		-- If align; index references beforehand (instead of each time we call __alignment)

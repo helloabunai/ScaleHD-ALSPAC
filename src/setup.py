@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 ##
 ## Begin the setup installation
 setup(
-    name='ScaleHD-ALSPAC',
+    name='ScaleHDALSPAC',
 
     # https://packaging.python.org/en/latest/single_source_version.html
     version='0.317',
@@ -19,7 +19,7 @@ setup(
     long_description=long_description,
 	python_requires='>=2.7.13',
     # The project's main homepage.
-    url='https://github.com/helloabunai/ScaleHD-ALSPAC',
+    url='https://github.com/helloabunai/ScaleHDALSPAC',
 
     # Author details
     author='Alastair Maxwell/University of Glasgow',
@@ -63,7 +63,7 @@ setup(
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=['input',
 									'lib',
-									'ScaleHD-ALSPAC.egg-info',
+									'ScaleHDALSPAC.egg-info',
 									'build',
 									'dist',
 									'logs'
@@ -93,7 +93,7 @@ setup(
     # These are the data files to be included in the package
 	# For GenoCall, this will be the data-sets used for machine-learning
 	# training, and generating predictive models for each 'data state'
-    package_data={'ScaleHD-ALSPAC': ['train/long_descr.rst',
+    package_data={'ScaleHDALSPAC': ['train/long_descr.rst',
                               'train/polyglutamine.csv',
                               'train/likelihood_matrix.csv',
                               'train/raw_matrix.csv',
@@ -104,6 +104,6 @@ setup(
 	# executables for the respective target platform. This entry point is akin
 	# to launching the script in bash: if __name__ == '__main__' etc..
     entry_points={
-        'console_scripts': ['scalehd_alspac=ScaleHD-ALSPAC.sherpa:main',],
+        'console_scripts': ['scalehd_alspac=ScaleHDALSPAC.sherpa:main',],
     },
 )
