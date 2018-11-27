@@ -156,6 +156,8 @@ class DetermineMutations:
 			gatk_sorted = sorted(gatk_matched, key=lambda b:b.QUAL, reverse=True)
 			gatk_sorted = [x for x in gatk_sorted if x.QUAL > variant_cutoff]
 
+
+
 			## Determine what to set values of call/score to, then apply to allele object
 			## will be written to InstanceReport.csv from whatever algo the user wanted
 			## user chose freebayes
@@ -185,19 +187,6 @@ class DetermineMutations:
 					## we do not
 					allele.set_variantcall(gatk_call)
 					allele.set_variantscore(gatk_score)
-
-			## Write unmatched to file
-			target_dir = os.path.join(self.sequencepair_object.get_predictpath(), 'IrrelevantVariants.txt')
-			with open(target_dir, 'w') as outfi:
-				for record in freebayes_unmatched:
-					record_str = 'Freebayes: {} = {} -> {} @ {}. Qual: {}'.format(record.CHROM, record.REF,
-																		record.ALT, record.POS, record.QUAL)
-					outfi.write(record_str+'\n')
-				outfi.write('\n')
-				for record in gatk_unmatched:
-					record_str = 'GATK: {} = {} -> {} @ {}. Qual: {}'.format(record.CHROM, record.REF,
-																		record.ALT, record.POS, record.QUAL)
-					outfi.write(record_str+'\n')
 
 	def set_report(self, input_report):
 		self.snp_report = input_report
