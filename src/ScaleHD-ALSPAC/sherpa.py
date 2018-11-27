@@ -111,6 +111,7 @@ class ScaleHDALSPAC:
 			sys.exit(2)
 		try:
 			self.instance_rundir = sanitise_outputs(self.args.jobname, self.args.output)
+			os.rename(self.logfi, os.path.join(self.instance_rundir, 'ScaleHDALSPACLog.txt'))
 		except Exception, e:
 			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, e))
 			sys.exit(2)
@@ -154,7 +155,6 @@ class ScaleHDALSPAC:
 		## In the future, replace with HTML based web-app, generated here?
 		## For now, just exit
 		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'ScaleHD-ALSPAC pipeline completed; exiting.'))
-		os.rename(self.logfi, os.path.join(self.instance_rundir, 'ScaleHDALSPACLog.txt'))
 
 	def instance_data(self):
 
@@ -490,28 +490,24 @@ class ScaleHDALSPAC:
 		try:
 			pri_orig = primary_allele.get_reflabel()
 			pri_unmasked = pri_orig.split('_')
-			if type(pri_unmasked[0]) == str:
-				pass
+
+			if int(pri_unmasked[0]) >= 31:
+				pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
+				primary_allele.set_referencelabel(pri_unmasked)
 			else:
-				if int(pri_unmasked[0]) >= 31:
-					pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
-					primary_allele.set_referencelabel(pri_unmasked)
-				else:
-					pri_unmasked = pri_orig
-					primary_allele.set_referencelabel(pri_unmasked)
+				pri_unmasked = pri_orig
+				primary_allele.set_referencelabel(pri_unmasked)
 
 			## hello it's more hacky ALSPAC masking
 			sec_orig = secondary_allele.get_reflabel()
 			sec_unmasked = sec_orig.split('_')
-			if type(sec_unmasked[0]) == str:
-				pass
+
+			if int(sec_unmasked[0]) >= 31:
+				sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
+				secondary_allele.set_referencelabel(sec_unmasked)
 			else:
-				if int(sec_unmasked[0]) >= 31:
-					sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
-					secondary_allele.set_referencelabel(sec_unmasked)
-				else:
-					sec_unmasked = sec_orig
-					secondary_allele.set_referencelabel(sec_unmasked)
+				sec_unmasked = sec_orig
+				secondary_allele.set_referencelabel(sec_unmasked)
 
 		except AttributeError:
 			pass

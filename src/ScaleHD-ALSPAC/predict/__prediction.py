@@ -1681,19 +1681,15 @@ class AlleleGenotyping:
 
 		for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
 
-
 			## hi it's more hacky ALSPAC garbage
 			orig = allele.get_allelegenotype()
 			unmasked = orig.split('_')
-			if type(unmasked[0]) == str:
-				pass
+			if int(unmasked[0]) >= 31:
+				unmasked = '_'.join(['31+'] + unmasked[1:])
+				allele.set_allelegenotype(unmasked)
 			else:
-				if int(unmasked[0]) >= 31:
-					unmasked = '_'.join(['31+'] + unmasked[1:])
-					allele.set_allelegenotype(unmasked)
-				else:
-					unmasked = orig
-					allele.set_allelegenotype(unmasked)
+				unmasked = orig
+				allele.set_allelegenotype(unmasked)
 
 			##
 			## Report path for this allele
