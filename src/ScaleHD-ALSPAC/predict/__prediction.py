@@ -1247,13 +1247,17 @@ class AlleleGenotyping:
 			unmasked = self.sequencepair_object.get_primaryallele().get_allelegenotype().split('_')
 			if unmasked[0] >= 31: unmasked = '_'.join(['31+']+unmasked[1:])
 			pri_alleletype = unmasked
-		else: pri_fod_cag = self.sequencepair_object.get_primaryallele().get_fodcag()
+		else:
+			pri_fod_cag = self.sequencepair_object.get_primaryallele().get_fodcag()
+			pri_alleletype = self.sequencepair_object.get_primaryallele().get_allelegenotype()
 		if self.sequencepair_object.get_secondaryallele().get_fodcag() >= 31:
 			sec_fod_cag = '31+'
 			unmasked = self.sequencepair_object.get_secondaryallele().get_allelegenotype().split('_')
 			if unmasked[0] >= 31: unmasked = '_'.join(['31+']+unmasked[1:])
 			sec_alleletype = unmasked
-		else: sec_fod_cag = self.sequencepair_object.get_secondaryallele().get_fodcag()
+		else:
+			sec_fod_cag = self.sequencepair_object.get_secondaryallele().get_fodcag()
+			sec_alleletype = self.sequencepair_object.get_secondaryallele().get_allelegenotype()
 
 		primary_string = '{}(CAG{}, CCG{}) ({}; {}; Confidence {}%)'.format('Primary: ', pri_fod_cag,
 												 self.sequencepair_object.get_primaryallele().get_fodccg(),
