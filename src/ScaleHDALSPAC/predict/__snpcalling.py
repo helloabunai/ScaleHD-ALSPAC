@@ -119,8 +119,6 @@ class DetermineMutations:
 		variant_cutoff = int(self.instance_params.config_dict['prediction_flags']['@quality_cutoff'])
 		for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
 
-			print allele.get_reflabel()
-
 			## Get variants found by freebayes
 			target = ''; freebayes_call = 'N/A'; freebayes_score = 0
 			freebayes_matched = []; freebayes_unmatched = []

@@ -333,13 +333,13 @@ class ScaleHDALSPAC:
 				#########################################
 				## Stage five!! Genotype distributions ##
 				#########################################
-				#try:
-				self.allele_genotyping(current_seqpair, invalid_data)
-				#except Exception, e:
-				#	current_seqpair.set_exceptionraised('Genotype'); purge(ARGS)
-				#	self.append_report(current_seqpair)
-				#	log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
-				#	continue
+				try:
+					self.allele_genotyping(current_seqpair, invalid_data)
+				except Exception, e:
+					current_seqpair.set_exceptionraised('Genotype'); purge(ARGS)
+					self.append_report(current_seqpair)
+					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
+					continue
 				#############################
 				## Stage six!! SNP calling ##
 				#############################
@@ -493,6 +493,8 @@ class ScaleHDALSPAC:
 			if int(pri_unmasked[0]) >= 31:
 				pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
 				primary_allele.set_referencelabel(pri_unmasked)
+		except AttributeError:
+			pass
 		except ValueError:
 			pass
 
@@ -503,6 +505,8 @@ class ScaleHDALSPAC:
 			if int(sec_unmasked[0]) >= 31:
 				sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
 				secondary_allele.set_referencelabel(sec_unmasked)
+		except AttributeError:
+			pass
 		except ValueError:
 			pass
 
