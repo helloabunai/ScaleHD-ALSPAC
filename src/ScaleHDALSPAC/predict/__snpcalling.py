@@ -119,6 +119,8 @@ class DetermineMutations:
 		variant_cutoff = int(self.instance_params.config_dict['prediction_flags']['@quality_cutoff'])
 		for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
 
+			print allele.get_reflabel()
+
 			## Get variants found by freebayes
 			target = ''; freebayes_call = 'N/A'; freebayes_score = 0
 			freebayes_matched = []; freebayes_unmatched = []
@@ -152,11 +154,10 @@ class DetermineMutations:
 			## sort and remove records which are < user specified cutoff
 			## todo again generalise this code you absolute throbber
 			freebayes_sorted = sorted(freebayes_matched, key=lambda a:a.QUAL, reverse=True)
+
 			freebayes_sorted = [x for x in freebayes_sorted if x.QUAL > variant_cutoff]
 			gatk_sorted = sorted(gatk_matched, key=lambda b:b.QUAL, reverse=True)
 			gatk_sorted = [x for x in gatk_sorted if x.QUAL > variant_cutoff]
-
-
 
 			## Determine what to set values of call/score to, then apply to allele object
 			## will be written to InstanceReport.csv from whatever algo the user wanted
@@ -165,7 +166,17 @@ class DetermineMutations:
 				if not len(freebayes_sorted) == 0:
 					## we have snps!
 					target = freebayes_sorted[0]
-					freebayes_call = '{}->{}@{}'.format(target.REF, target.ALT[0], target.POS)
+
+					## hacky alspac position masking
+					cag_size = allele.get_fodcag()
+					flank = allele.get_fiveprime()
+					positional_cutoff = 3 * 31 + len(flank)
+					position = 0
+					if len(flank) + int(cag_size)*3 >= positional_cutoff:
+						position = 'MASK'
+					else:
+						position = target.POS
+					freebayes_call = '{}->{}@{}'.format(target.REF, target.ALT[0], position)
 					freebayes_score = target.QUAL
 					allele.set_variantcall(freebayes_call)
 					allele.set_variantscore(freebayes_score)
@@ -179,7 +190,18 @@ class DetermineMutations:
 				if not len(gatk_sorted) == 0:
 					## we have snps!
 					target = gatk_sorted[0]
-					gatk_call = '{}->{}@{}'.format(target.REF, target.ALT, target.POS)
+
+					## hacky alspac position masking
+					cag_size = allele.get_fodcag()
+					flank = allele.get_fiveprime()
+					positional_cutoff = 3 * 31 + len(flank)
+					position = 0
+					if len(flank) + int(cag_size)*3 >= positional_cutoff:
+						position = 'MASK'
+					else:
+						position = target.POS
+
+					gatk_call = '{}->{}@{}'.format(target.REF, target.ALT, position)
 					gatk_score = target.QUAL
 					allele.set_variantcall(gatk_call)
 					allele.set_variantscore(gatk_score)

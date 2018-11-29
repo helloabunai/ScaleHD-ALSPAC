@@ -333,13 +333,13 @@ class ScaleHDALSPAC:
 				#########################################
 				## Stage five!! Genotype distributions ##
 				#########################################
-				try:
-					self.allele_genotyping(current_seqpair, invalid_data)
-				except Exception, e:
-					current_seqpair.set_exceptionraised('Genotype'); purge(ARGS)
-					self.append_report(current_seqpair)
-					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
-					continue
+				#try:
+				self.allele_genotyping(current_seqpair, invalid_data)
+				#except Exception, e:
+				#	current_seqpair.set_exceptionraised('Genotype'); purge(ARGS)
+				#	self.append_report(current_seqpair)
+				#	log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
+				#	continue
 				#############################
 				## Stage six!! SNP calling ##
 				#############################
@@ -490,26 +490,20 @@ class ScaleHDALSPAC:
 		try:
 			pri_orig = primary_allele.get_reflabel()
 			pri_unmasked = pri_orig.split('_')
-
 			if int(pri_unmasked[0]) >= 31:
 				pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
 				primary_allele.set_referencelabel(pri_unmasked)
-			else:
-				pri_unmasked = pri_orig
-				primary_allele.set_referencelabel(pri_unmasked)
+		except ValueError:
+			pass
 
+		try:
 			## hello it's more hacky ALSPAC masking
 			sec_orig = secondary_allele.get_reflabel()
 			sec_unmasked = sec_orig.split('_')
-
 			if int(sec_unmasked[0]) >= 31:
 				sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
 				secondary_allele.set_referencelabel(sec_unmasked)
-			else:
-				sec_unmasked = sec_orig
-				secondary_allele.set_referencelabel(sec_unmasked)
-
-		except AttributeError:
+		except ValueError:
 			pass
 
 		unparsed_info = [[sequencepair_object, 'get_label'], ['NULL', 'NULL'], [primary_allele, 'get_reflabel'],

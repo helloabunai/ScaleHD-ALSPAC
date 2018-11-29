@@ -757,7 +757,8 @@ class AlleleGenotyping:
 		pass_vld = True
 		primary_allele = self.sequencepair_object.get_primaryallele()
 		secondary_allele = self.sequencepair_object.get_secondaryallele()
-		distribution_split = self.split_cag_target(primary_allele.get_fwarray())
+		pri_distro_split = self.split_cag_target(primary_allele.get_fwarray())
+		sec_distro_split = self.split_cag_target(secondary_allele.get_fwarray())
 		ccg_zygstate = self.zygosity_state
 
 		##
@@ -869,8 +870,8 @@ class AlleleGenotyping:
 		##
 		## Check for potential homozygous haplotype/neighbouring peak
 		if ccg_zygstate == 'HOMO' and np.isclose(primary_dsp_cag, secondary_dsp_cag, atol=1):
-			primary_target = distribution_split['CCG{}'.format(primary_allele.get_ccg())]
-			secondary_target = distribution_split['CCG{}'.format(secondary_allele.get_ccg())]
+			primary_target = pri_distro_split['CCG{}'.format(primary_allele.get_ccg())]
+			secondary_target = sec_distro_split['CCG{}'.format(secondary_allele.get_ccg())]
 			primary_reads = primary_target[primary_allele.get_cag()-1]
 			secondary_reads = secondary_target[secondary_allele.get_cag()-1]
 			diff = abs(primary_reads-secondary_reads)
@@ -916,7 +917,7 @@ class AlleleGenotyping:
 					np.set_printoptions(threshold=np.nan)
 					inferred_fwarray = []
 					## infer CCG from fw dist (sum x200)
-					for contig, distribution in distribution_split.iteritems():
+					for contig, distribution in pri_distro_split.iteritems():
 						inferred_fwarray.append(sum(distribution))
 					## get values for 'peaks'
 					inferred_fwarray = np.asarray(inferred_fwarray)
@@ -962,7 +963,7 @@ class AlleleGenotyping:
 			if np.isclose([peak_total/dist_total], [0.65], atol=0.175):
 				pass
 			elif primary_fod_ccg == secondary_fod_ccg and primary_dsp_cag != secondary_dsp_cag:
-				primary_target = distribution_split['CCG{}'.format(primary_allele.get_ccg())]
+				primary_target = sec_distro_split['CCG{}'.format(primary_allele.get_ccg())]
 				split_target = primary_target[primary_allele.get_cag()+5:-1]
 				difference_buffer = len(primary_target)-len(split_target)
 				fod_failstate, cag_diminished = self.peak_detection(primary_allele, split_target, 1, 'CAGDim')
@@ -1525,7 +1526,7 @@ class AlleleGenotyping:
 				if self.sequencepair_object.get_homozygoushaplotype():
 					allele_confidence -= 25; penfi.write('{}, {}\n'.format('Homozygous Haplotype','-25'))
 				elif self.sequencepair_object.get_neighbouringpeaks():
-					allele_confidence -= 25; penfi.write('{}, {}\n'.format('Neighbouring Peaks', '-25'))
+					allele_confidence -= 15; penfi.write('{}, {}\n'.format('Neighbouring Peaks', '-15'))
 				else: allele_confidence += 0; penfi.write('{}, {}\n'.format('Normal Data','+0'))
 
 				if self.sequencepair_object.get_diminishedpeaks():
@@ -1657,7 +1658,7 @@ class AlleleGenotyping:
 				## Differential Confusion
 				## i.e two peaks nearby, large difference between suspected but unsure whether homo or neighbour
 				if allele.get_differential_confusion():
-					allele_confidence -= 45; penfi.write('{}, {}\n'.format('Differential Confusion', '-45'))
+					allele_confidence -= 30; penfi.write('{}, {}\n'.format('Differential Confusion', '-30'))
 
 				## Heuristic filtering of DSP results state check
 				if not self.sequencepair_object.get_heuristicfilter():
@@ -1684,6 +1685,13 @@ class AlleleGenotyping:
 			## hi it's more hacky ALSPAC garbage
 			orig = allele.get_allelegenotype()
 			unmasked = orig.split('_')
+
+			try:
+				int(unmasked[0])
+			except ValueError:
+				temp = unmasked[0]
+				unmasked[0] = temp.split('+')[0]
+
 			if int(unmasked[0]) >= 31:
 				unmasked = '_'.join(['31+'] + unmasked[1:])
 				allele.set_allelegenotype(unmasked)
