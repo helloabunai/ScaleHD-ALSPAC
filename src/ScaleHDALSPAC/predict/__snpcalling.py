@@ -1,5 +1,5 @@
 #/usr/bin/python
-__version__ = 0.317
+__version__ = 0.318
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 import os
@@ -212,3 +212,4 @@ class DetermineMutations:
 		self.snp_report = input_report
 	def get_report(self):
 		return self.snp_report
+
