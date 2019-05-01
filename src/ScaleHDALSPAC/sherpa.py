@@ -1,7 +1,7 @@
 from __future__ import division
 
 #/usr/bin/python
-__version__ = 0.318
+__version__ = 0.324
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -20,7 +20,7 @@ from multiprocessing import cpu_count
 
 ##
 ## Backend junk
-from __backend import purge
+from __backend import siivota
 from __backend import ConfigReader
 from __backend import Colour as clr
 from __backend import initialise_libraries
@@ -38,6 +38,7 @@ from __allelecontainer import SequenceSample
 from . import seq_qc
 from . import align
 from . import predict
+from . import genHTML
 
 ##
 ## Globals
@@ -64,21 +65,23 @@ class ScaleHDALSPAC:
 
 		##
 		## Argument parser from CLI
-		self.parser = argparse.ArgumentParser(prog='scalehd_alspac', description='ScaleHDALSPAC: Automated DNA micro-satellite genotyping.')
+		self.parser = argparse.ArgumentParser(prog='scalehd_alspac', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
 		self.parser.add_argument('-v', '--verbose', help='Verbose output mode. Setting this flag enables verbose output. Default: off.', action='store_true')
 		self.parser.add_argument('-c', '--config', help='Pipeline config. Specify a directory to your ArgumentConfig.xml file.', nargs=1, required=True)
 		self.parser.add_argument('-t', '--threads', help='Thread utilisation. Typically only alters third party alignment performance. Default: system max.', type=int, choices=xrange(1, THREADS+1), default=THREADS)
 		self.parser.add_argument('-e', '--enshrine', help='Do not remove non-uniquely mapped reads from SAM files.', action='store_true')
+		self.parser.add_argument('-s', '--simple', help='Simplified output is also produced, genotypes are more interpretable in a literal manner.', action='store_true')
+		self.parser.add_argument('-p', '--purge', help='After processing all samples, remove all output EXCEPT for the HTML based report', action='store_true')
 		self.parser.add_argument('-b', '--broadscope', help='Do not subsample fastq data in the case of high read-count.', action='store_true')
 		self.parser.add_argument('-g', '--groupsam', help='Outputs all sorted SAM files into one instance-wide output folder, rather than sample subfolders.', action='store_true')
-		self.parser.add_argument('-j', '--jobname', help='Customised folder output name. If not specified, defaults to normal output naming schema.', type=str, required=True)
+		self.parser.add_argument('-j', '--jobname', help='Customised folder output name. If not specified, defaults to normal output naming schema.', type=str)
 		self.parser.add_argument('-o', '--output', help='Output path. Specify a directory you wish output to be directed towards.', metavar='output', nargs=1, required=True)
 		self.args = self.parser.parse_args(); global ARGS; ARGS = self.args
 		self.header = ''
 
 		##
 		## Set verbosity for CLI output
-		self.logfi = os.path.join(self.args.output[0], 'ScaleHDALSPACLog.txt')
+		self.logfi = os.path.join(self.args.output[0], 'ScaleHD-ALSPACLog.txt')
 		## create logdir
 		if not os.path.exists(self.args.output[0]):
 			os.makedirs(self.args.output[0])
@@ -86,7 +89,7 @@ class ScaleHDALSPAC:
 		if self.args.verbose:
 			log.basicConfig(format='%(message)s', level=log.DEBUG, filename=self.logfi)
 			log.getLogger().addHandler(log.StreamHandler())
-			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'ScaleHDALSPAC: Automated DNA micro-satellite genotyping.'))
+			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, '!!! This version will mask allele sizes for ALSPAC PheWAS study !!!'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, '!!! Only use this version if you absolutely require this feature !!!'))
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'alastair.maxwell@glasgow.ac.uk\n'))
@@ -100,7 +103,7 @@ class ScaleHDALSPAC:
 				pass
 			if sys.version_info[2] < 13:
 				current_user_version = '{}.{}.{}'.format(sys.version_info[0], sys.version_info[1], sys.version_info[2])
-				log.error('{}{}{}{}{}.'.format(clr.red, 'shda__ ', clr.end, 'ScaleHDALSPAC requires python2 2.7.13 or later!'
+				log.error('{}{}{}{}{}.'.format(clr.red, 'shda__ ', clr.end, 'ScaleHD-ALSPAC requires python2 2.7.13 or later!'
 																		   ' You are using: ', current_user_version))
 				sys.exit(2)
 
@@ -111,7 +114,7 @@ class ScaleHDALSPAC:
 			sys.exit(2)
 		try:
 			self.instance_rundir = sanitise_outputs(self.args.jobname, self.args.output)
-			os.rename(self.logfi, os.path.join(self.instance_rundir, 'ScaleHDALSPACLog.txt'))
+			os.rename(self.logfi, os.path.join(self.instance_rundir, 'ScaleHD-ALSPACLog.txt'))
 		except Exception, e:
 			log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, e))
 			sys.exit(2)
@@ -129,6 +132,7 @@ class ScaleHDALSPAC:
 		copyfile(self.configfile, instance_configuration)
 		self.instance_params = ConfigReader(script_path, self.configfile)
 		self.instance_params.config_dict['JobName'] = self.args.jobname
+		self.instance_params.config_dict['HTMLPath'] = self.instance_rundir
 		##
 		## Check libraries for stages specified in config
 		if initialise_libraries(self.instance_params):
@@ -141,20 +145,21 @@ class ScaleHDALSPAC:
 		## Set-up instance wide applicable files
 		self.index_path = ''; self.reference_indexes = []; self.typical_indexes = []
 		self.instance_results = ''; self.instance_matrix = ''; self.instance_graphs = ''
-		self.padded_distributions = ''
-		self.instance_data()
+		self.padded_distributions = ''; self.simplified_results = ''
+		self.instance_data(); self.instance_objects = []
 
 		##
 		## Workflow time!
-		## -c == config, do as config parsed flags
-		self.sequence_workflow()
+		self.sequence_workflow() # seqqc, seqaln, genotype, snpcalling
+		self.html_workflow() # render HTML output
+		if self.args.purge: self.one_night_a_year() # delete non-HTML output if specified
 
 		##
 		## Instance wide output results
 		## A simple report file is appended after each sample pair, currently..
 		## In the future, replace with HTML based web-app, generated here?
 		## For now, just exit
-		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'ScaleHDALSPAC pipeline completed; exiting.'))
+		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'ScaleHD-ALSPAC pipeline completed; exiting.'))
 
 	def instance_data(self):
 
@@ -177,6 +182,7 @@ class ScaleHDALSPAC:
 		##
 		## Instance results (genotype table)
 		self.instance_results = os.path.join(self.instance_rundir, 'InstanceReport.csv')
+		self.simplified_results = os.path.join(self.instance_rundir, 'SimplifiedReport.csv')
 		self.header = '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
 					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},' \
 					  '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
@@ -189,7 +195,10 @@ class ScaleHDALSPAC:
 			'CCG Rewritten', 'CCG Zygosity Rewritten', 'CCG Uncertainty', 'CCT Uncertainty', 'SVM Failure',
 			'Differential Confusion', 'Missed Expansion', 'Heuristic Filtering Success', 'Peak Inspection Warning', 'Low Distribution Reads', 'Low Peak Reads'
 		)
+		simple_header = '{},{},{},{},{},{}\n'.format('Filename', '', 'Allele1', 'Allele1-CI', 'Allele2', 'Allele2-CI' )
 		with open(self.instance_results, 'w') as outfi: outfi.write(self.header); outfi.close()
+		if self.args.simple:
+			with open(self.simplified_results, 'w') as sifi: sifi.write(simple_header); sifi.close()
 
 		##
 		## Instance graphs
@@ -198,7 +207,7 @@ class ScaleHDALSPAC:
 		date_string = dt.datetime.today().strftime("%d/%m/%Y")
 		self.instance_graphs = os.path.join(self.instance_rundir, 'InstanceGraphs.pdf')
 		c = canvas.Canvas(self.instance_graphs, pagesize=(500,250))
-		first_string = 'ScaleHDALSPAC: Automated Huntington Disease Genotyping'
+		first_string = 'ScaleHD-ALSPAC: Automated Huntington Disease Genotyping'
 		second_string = 'University of Glasgow: alastair.maxwell@glasgow.ac.uk'
 		third_string = '{}{}'.format('Job Name: ', job_string)
 		fourth_string = '{}{}'.format('Run Date: ', date_string)
@@ -210,7 +219,7 @@ class ScaleHDALSPAC:
 
 	def sequence_workflow(self):
 		"""
-		Workflow for when ScaleHDALSPAC is being ran in config mode..
+		Workflow for when ScaleHD is being ran in config mode..
 		Behaviours are tailored based on information extracted from the specified config XML file
 		General overview:
 		-- If align; index references beforehand (instead of each time we call __alignment)
@@ -227,7 +236,7 @@ class ScaleHDALSPAC:
 		##
 		## Config generics
 		if self.instance_params.config_dict['instance_flags']['@demultiplex'] == 'True':
-			instance_inputdata = self.instance_params.config_dict['@data_dir']+'_demultiplexed'
+			instance_inputdata = self.instance_params.config_dict['@data_dir'][:-1]+'_demultiplexed'
 		else:
 			instance_inputdata = self.instance_params.config_dict['@data_dir']
 
@@ -255,7 +264,6 @@ class ScaleHDALSPAC:
 				current_seqpair.set_predictpath(seqpair_dat[5])
 				current_seqpair.set_enshrineflag(self.enshrine_assembly)
 				current_seqpair.set_snpobservationvalue(self.instance_params.config_dict['prediction_flags']['@snp_observation_threshold'])
-				current_seqpair.set_snpalgorithm(self.instance_params.config_dict['prediction_flags']['@algorithm_utilisation'])
 				current_seqpair.set_broadflag(self.broad_flag)
 				current_seqpair.set_groupflag(self.group_flag)
 				current_seqpair.set_fwidx(self.reference_indexes[0])
@@ -269,8 +277,9 @@ class ScaleHDALSPAC:
 				try:
 					self.quality_control(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('SeqQC'); purge(ARGS)
+					current_seqpair.set_exceptionraised('SeqQC'); siivota(ARGS)
 					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shda__ ',clr.end,'SeqQC failure on ',seqpair_lbl,str(e)))
 					continue
 				##############################################
@@ -279,8 +288,9 @@ class ScaleHDALSPAC:
 				try:
 					self.sequence_alignment(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('SeqALN'); purge(ARGS)
+					current_seqpair.set_exceptionraised('SeqALN'); siivota(ARGS)
 					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red,'shda__ ',clr.end,'Alignment failure on ',seqpair_lbl,str(e)))
 					continue
 				###############################################
@@ -289,8 +299,9 @@ class ScaleHDALSPAC:
 				try:
 					self.atypical_scanning(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('DSP'); purge(ARGS)
+					current_seqpair.set_exceptionraised('DSP'); siivota(ARGS)
 					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Atypical scanning failure on ', seqpair_lbl, str(e)))
 					continue
 				##########################################
@@ -304,8 +315,9 @@ class ScaleHDALSPAC:
 							try:
 								self.sequence_realignment(current_seqpair, allele)
 							except Exception, e:
-								current_seqpair.set_exceptionraised('SeqRE-ALN'); purge(ARGS)
+								current_seqpair.set_exceptionraised('SeqRE-ALN'); siivota(ARGS)
 								self.append_report(current_seqpair)
+								self.instance_objects.append(current_seqpair)
 								log.info('{}{}{}{}{}: {}'.format(clr.red,'shda__ ',clr.end,'Realignment failure on ',seqpair_lbl,str(e)))
 								continue
 						else:
@@ -336,8 +348,9 @@ class ScaleHDALSPAC:
 				try:
 					self.allele_genotyping(current_seqpair, invalid_data)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('Genotype'); purge(ARGS)
+					current_seqpair.set_exceptionraised('Genotype'); siivota(ARGS)
 					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'Genotyping failure on ',seqpair_lbl, str(e)))
 					continue
 				#############################
@@ -346,8 +359,9 @@ class ScaleHDALSPAC:
 				try:
 					self.snp_calling(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('SNP Calling'); purge(ARGS)
+					current_seqpair.set_exceptionraised('SNPCalling'); siivota(ARGS)
 					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
 					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'SNP calling failure on ',seqpair_lbl, str(e)))
 					continue
 				#############################
@@ -355,11 +369,13 @@ class ScaleHDALSPAC:
 				#############################
 				try:
 					self.collate_graphs(current_seqpair)
-					current_seqpair.set_exceptionraised('N/A'); purge(ARGS)
+					current_seqpair.set_exceptionraised('N/A')
 					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
 				except Exception, e:
-					current_seqpair.set_exceptionraised('Report/Graph'); purge(ARGS)
+					current_seqpair.set_exceptionraised('Report/Graph'); siivota(ARGS)
 					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
 					log.info('{}{}{}{}{}: {}'.format(clr.red, 'shda__ ', clr.end, 'Report/Graphing failure on ', seqpair_lbl, str(e)))
 				gc.collect()
 				log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Sequence pair workflow complete!\n'))
@@ -371,7 +387,8 @@ class ScaleHDALSPAC:
 			log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Executing sequence quality control workflow..'))
 			if seq_qc.SeqQC(sequencepair_object, self.instance_params, 'validate'):
 				log.info('{}{}{}{}'.format(clr.bold,'shda__ ',clr.end,'Initialising trimming..'))
-				seq_qc.SeqQC(sequencepair_object,self.instance_params,'trim')
+				trim_reports = seq_qc.SeqQC(sequencepair_object, self.instance_params, 'trim').get_qcreports()[0]
+				sequencepair_object.set_trimreport(trim_reports)
 				gc.collect()
 				log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Trimming complete!'))
 
@@ -381,6 +398,7 @@ class ScaleHDALSPAC:
 		if alignment_flag == 'True':
 			log.info('{}{}{}{}'.format(clr.yellow,'shda__ ',clr.end,'Executing alignment workflow..'))
 			align.SeqAlign(sequencepair_object, self.instance_params)
+			sequencepair_object.set_alignreport('')
 			gc.collect()
 			log.info('{}{}{}{}'.format(clr.green,'shda__ ',clr.end,'Sequence alignment workflow complete!'))
 
@@ -389,7 +407,7 @@ class ScaleHDALSPAC:
 		alignment_flag = self.instance_params.config_dict['instance_flags']['@sequence_alignment']
 		if alignment_flag == 'True':
 			log.info('{}{}{}{}'.format(clr.bold, 'shda__ ', clr.end, 'Scanning for atypical alleles..'))
-			align.ScanAtypical(sequencepair_object, self.instance_params)
+			sequencepair_object.set_atypicalreport(align.ScanAtypical(sequencepair_object, self.instance_params).get_atypicalreport())
 			atypical_count = sequencepair_object.get_atypicalcount()
 			if atypical_count != 0:
 				log.info('{}{}{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'Scanning complete! ',str(sequencepair_object.get_atypicalcount()),' atypical allele(s) present.'))
@@ -478,37 +496,19 @@ class ScaleHDALSPAC:
 						func = getattr(seq_object, func_call)
 						func_output = func()
 					except AttributeError:
-						func_output = 'FAIL'
+						alignment_stats = ['get_fwalncount', 'get_fwalnpcnt', 'get_fwalnrmvd',
+						 'get_rvalncount', 'get_rvalnpcnt', 'get_rvalnrmvd']
+						if func_call in alignment_stats:
+							func = getattr(sequencepair_object, func_call)
+							func_output = func()
+						else:
+							func_output = 'FAIL'
 					if func_output is None:
 						func_output += 'FAIL'
 				else:
 					func_output = ' '
 				rep_str += '{},'.format(func_output)
 			return rep_str
-
-		## hello it's more hacky ALSPAC masking
-		try:
-			pri_orig = primary_allele.get_reflabel()
-			pri_unmasked = pri_orig.split('_')
-			if int(pri_unmasked[0]) >= 31:
-				pri_unmasked = '_'.join(['31+'] + pri_unmasked[1:])
-				primary_allele.set_referencelabel(pri_unmasked)
-		except AttributeError:
-			pass
-		except ValueError:
-			pass
-
-		try:
-			## hello it's more hacky ALSPAC masking
-			sec_orig = secondary_allele.get_reflabel()
-			sec_unmasked = sec_orig.split('_')
-			if int(sec_unmasked[0]) >= 31:
-				sec_unmasked = '_'.join(['31+'] + sec_unmasked[1:])
-				secondary_allele.set_referencelabel(sec_unmasked)
-		except AttributeError:
-			pass
-		except ValueError:
-			pass
 
 		unparsed_info = [[sequencepair_object, 'get_label'], ['NULL', 'NULL'], [primary_allele, 'get_reflabel'],
 						 [primary_allele, 'get_allelestatus'], [primary_allele, 'get_fwalncount'],
@@ -550,10 +550,43 @@ class ScaleHDALSPAC:
 			with open(os.path.join(home, 'InstanceReport.csv'), 'a') as newappfi:
 				newappfi.write(report_string); newappfi.close()
 
+		if self.args.simple:
+			simple_string = call_object_scraper([[sequencepair_object, 'get_label'], ['NULL', 'NULL'],
+			[primary_allele, 'get_reflabel'], [primary_allele, 'get_alleleconfinterval'],
+			[secondary_allele, 'get_reflabel'],[secondary_allele, 'get_alleleconfinterval']])
+			simple_string += '\n'
+
+			try:
+				with open(self.simplified_results, 'a') as outfi:
+					outfi.write(simple_string)
+					outfi.close()
+			except IOError:
+				from os.path import expanduser; home = expanduser("~")
+				log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'InstanceReport.csv resource LOCKED. Open in excel?'))
+				log.info('{}{}{}{}{}'.format(clr.yellow, 'shda__ ', clr.end, 'Cannot write while locked. Writing to: ', home))
+				with open(os.path.join(home, 'InstanceReport.csv'), 'w') as newoutfi:
+					newoutfi.write(self.header); newoutfi.close()
+				with open(os.path.join(home, 'InstanceReport.csv'), 'a') as newappfi:
+					newappfi.write(report_string); newappfi.close()
+
+	def html_workflow(self):
+
+		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'Generating HTML results output..'))
+		## Pass to subpackge to take data and format into HTML templates
+		genHTML.genHTML(scalehdResults = self.instance_objects,
+		 shdVersion = __version__,
+		 jobLabel=self.instance_params.config_dict['JobName'],
+		 outputPath=self.instance_params.config_dict['HTMLPath'])
+		siivota(ARGS)
+
+	def one_night_a_year(self):
+
+		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'Purging non-HTML output is not implemented yet.'))
+
 def main():
 	try:
 		ScaleHDALSPAC()
 	except KeyboardInterrupt:
-		purge(ARGS)
+		siivota(ARGS)
 		log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Fatal: Keyboard Interrupt detected. Exiting.'))
 		sys.exit(2)

@@ -1,5 +1,5 @@
 #/usr/bin/python
-__version__ = 0.318
+__version__ = 0.324
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -26,6 +26,8 @@ class SeqQC:
 		self.target_output = sequencepair_object.get_qcpath()
 		self.instance_params = instance_params
 		self.trimming_errors = False
+		self.trimming_report = []
+		self.fastqc_report = []
 		if stage.lower()=='validate':
 			self.verify_input()
 		if stage.lower()=='trim':
@@ -45,14 +47,22 @@ class SeqQC:
 
 		##
 		## Generic subprocess for use in trimming
-		def execute_cutadapt(arguments_split):
+		def execute_cutadapt(arguments_split, filename_root, sample_output):
 			trimming_subprocess = subprocess.Popen(['cutadapt'] + arguments_split, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			cutadapt_raw_output = trimming_subprocess.communicate()
+			cutadapt_report = cutadapt_raw_output[0]
 			cutadapt_errors = cutadapt_raw_output[1]
 			trimming_subprocess.wait()
 
+			report_directory = os.path.join(sample_output, filename_root + '_TrimmingReport.txt')
+			report_file = open(report_directory, 'w')
+			report_file.write(cutadapt_report)
+			report_file.write(cutadapt_errors)
+			report_file.close()
+
 			if cutadapt_errors is not None:
 				self.trimming_errors = True
+			return report_directory
 
 		##
 		## Determine what we want to trim from parameters dictionary
@@ -72,9 +82,10 @@ class SeqQC:
 						self.sequencepair_data.set_fwtrimmed(trimmed_outdir)
 
 					argument_list = ['-e', error_tolerance, '-q', quality_threshold, self.input_filepair[i], '-o', trimmed_outdir]
-					execute_cutadapt(argument_list)
+					trim_report = execute_cutadapt(argument_list, file_root, self.target_output)
 					if i == 0: self.sequencepair_data.set_fwreads(trimmed_outdir)
 					if i == 1: self.sequencepair_data.set_rvreads(trimmed_outdir)
+					self.trimming_report.append(trim_report)
 
 			stepwise_counter = 0
 			if trim_type.lower()=='adapter':
@@ -96,9 +107,10 @@ class SeqQC:
 					if file_root.split('_')[-1] == 'R1':
 						self.sequencepair_data.set_fwtrimmed(trimmed_outdir)
 					argument_list = ['-e', error_tolerance, adapter_anchor, adapter_string, self.input_filepair[i], '-o', trimmed_outdir]
-					execute_cutadapt(argument_list)
+					trim_report = execute_cutadapt(argument_list, file_root, self.target_output)
 					if i == 0: self.sequencepair_data.set_fwreads(trimmed_outdir)
 					if i == 1: self.sequencepair_data.set_rvreads(trimmed_outdir)
+					self.trimming_report.append(trim_report)
 					stepwise_counter += 1
 
 			stepwise_counter = 0
@@ -123,13 +135,17 @@ class SeqQC:
 					if adapter_anchor == '-g^':adapter_anchor = '-g';adapter_string = '^' + adapter_string
 
 					argument_list = ['-e', error_tolerance, '-q', quality_threshold, adapter_anchor, adapter_string, self.input_filepair[i], '-o', trimmed_outdir]
-					execute_cutadapt(argument_list)
+					trim_report = execute_cutadapt(argument_list, file_root, self.target_output)
 					if i == 0: self.sequencepair_data.set_fwreads(trimmed_outdir)
 					if i == 1: self.sequencepair_data.set_rvreads(trimmed_outdir)
+					self.trimming_report.append(trim_report)
 
 		if self.trimming_errors == 'True':
 			log.error('{}{}{}{}'.format(clr.red,'shda__ ',clr.end,'Trimming errors occurred. Check logging report!'))
 			sys.exit(2)
+
+	def get_qcreports(self):
+		return [self.trimming_report]
 
 class BatchadaptWrapper:
 	def __init__(self, instance_params):
@@ -158,7 +174,7 @@ class BatchadaptWrapper:
 		self.min_overlap = self.instance_params.config_dict['demultiplex_flags']['@min_overlap']
 		self.min_length = self.instance_params.config_dict['demultiplex_flags']['@min_length']
 		self.max_length = self.instance_params.config_dict['demultiplex_flags']['@max_length']
-		self.target_dir = self.data_dir+'_demultiplexed'
+		self.target_dir = str(self.data_dir)[:-1] + '_demultiplexed'
 		if not os.path.exists(self.target_dir):
 			os.makedirs(self.target_dir)
 

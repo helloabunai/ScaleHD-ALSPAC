@@ -8,6 +8,7 @@ class SequenceSample:
 		self.sample_qcpath = ''
 		self.sample_alignpath = ''
 		self.sample_predictpath = ''
+		self.html_path = ''
 		self.enshrine_flag = False
 		self.subsample_flag = False
 		self.snpobservationvalue = 0
@@ -34,6 +35,7 @@ class SequenceSample:
 		self.forward_trimmed = ''
 
 		self.trim_report = []
+		self.fqc_report = []
 		self.align_report = []
 		self.atypical_report = ''
 		self.genotype_report = ''
@@ -74,6 +76,7 @@ class SequenceSample:
 	def set_qcpath(self, qcpath): self.sample_qcpath = qcpath
 	def set_alignpath(self, alignpath):	self.sample_alignpath = alignpath
 	def set_predictpath(self, predictpath):	self.sample_predictpath = predictpath
+	def set_htmlpath(self, htmlpath): self.html_path = htmlpath
 	def set_enshrineflag(self, flag): self.enshrine_flag = flag
 	def set_subsampleflag(self, flag): self.subsample_flag = flag
 	def set_snpobservationvalue(self, val): self.snpobservationvalue = val
@@ -100,6 +103,7 @@ class SequenceSample:
 	def set_fwtrimmed(self, reads): self.forward_trimmed = reads
 
 	def set_trimreport(self, report): self.trim_report = report
+	def set_fqcreport(self, report): self.fqc_report = report
 	def set_alignreport(self, report): self.align_report = report
 	def set_atypicalreport(self, report): self.atypical_report = report
 	def set_genotypereport(self, report): self.genotype_report = report
@@ -140,6 +144,7 @@ class SequenceSample:
 	def get_qcpath(self): return self.sample_qcpath
 	def get_alignpath(self): return self.sample_alignpath
 	def get_predictpath(self): return self.sample_predictpath
+	def get_htmlpath(self): return self.html_path
 	def get_enshrineflag(self): return self.enshrine_flag
 	def get_subsampleflag(self): return self.subsample_flag
 	def get_snpobservationvalue(self): return self.snpobservationvalue
@@ -166,6 +171,7 @@ class SequenceSample:
 	def get_fwtrimmed(self): return self.forward_trimmed
 
 	def get_trimreport(self): return self.trim_report
+	def get_fqcreport(self): return self.fqc_report
 	def get_alignreport(self): return self.align_report
 	def get_atypicalreport(self): return self.atypical_report
 	def get_genotypereport(self): return self.genotype_report
@@ -254,7 +260,6 @@ class IndividualAllele:
 		self.reverse_array = []
 		self.forward_array_original = []
 		self.reverse_array_original = []
-		self.gatk_file = ''
 		self.freebayes_file = ''
 		self.ccg_peak_threshold = 0.0
 		self.cag_peak_threshold = 0.0
@@ -269,6 +274,7 @@ class IndividualAllele:
 		self.immediate_dropoff = []
 		self.allele_report = ''
 		self.allele_graphs = []
+		self.confinterval = ''
 
 		self.interpolation_warning = False
 		self.nminus_warninglevel = 0
@@ -329,7 +335,6 @@ class IndividualAllele:
 	def set_rvarray(self, array): self.reverse_array = array
 	def set_fwarray_orig(self, array): self.forward_array_original = array
 	def set_rvarray_orig(self, array): self.reverse_array_original = array
-	def set_gatk_file(self, infile): self.gatk_file = infile
 	def set_freebayes_file(self, infile): self.freebayes_file = infile
 	def set_ccgthreshold(self, threshold): self.ccg_peak_threshold = threshold
 	def set_cagthreshold(self, threshold): self.cag_peak_threshold = threshold
@@ -344,6 +349,7 @@ class IndividualAllele:
 	def set_immediate_dropoff(self, value_list): self.immediate_dropoff = value_list
 	def set_allelereport(self, path): self.allele_report = path
 	def set_allelegraphs(self, graph): self.allele_graphs.append(graph)
+	def set_alleleconfinterval(self, value): self.confinterval = value
 
 	def raise_interpolation_warning(self, bool): self.interpolation_warning = bool
 	def set_nminuswarninglevel(self, amount): self.nminus_warninglevel = amount
@@ -404,7 +410,6 @@ class IndividualAllele:
 	def get_rvarray(self): return self.reverse_array
 	def get_fwarray_orig(self): return self.forward_array_original
 	def get_rvarray_orig(self): return self.reverse_array_original
-	def get_gatk_file(self): return self.gatk_file
 	def get_freebayes_file(self): return self.freebayes_file
 	def get_ccgthreshold(self): return self.ccg_peak_threshold
 	def get_cagthreshold(self): return self.cag_peak_threshold
@@ -419,6 +424,7 @@ class IndividualAllele:
 	def get_immediate_dropoff(self): return self.immediate_dropoff
 	def get_allelereport(self): return self.allele_report
 	def get_allelegraphs(self): return self.allele_graphs
+	def get_alleleconfinterval(self): return self.confinterval
 
 	def get_interpolation_warning(self): return self.interpolation_warning
 	def get_nminuswarninglevel(self): return self.nminus_warninglevel

@@ -1,5 +1,54 @@
 .. _sect_changelog:
 
+Version 0.324
+-------------
+
+* Futher minor bugfixes regarding deployment of build scripts incorrectly providing sources in 0.323.
+
+Version 0.323
+-------------
+
+* Minor bugfix for SNP calling where data was in an unexpected vector shape
+* Minor bugfix for HTML report generation where certain exceptions were preventing incorrect data scraping
+
+Version 0.322
+-------------
+
+* Removed novel atypical flag indicator from sequences with no intervening sequence at all
+* Added alignment statistics to default ScaleHD output for samples which aligned, but could not be processed further
+* Swapped standard HTML summary in genHTML for javascript element (filterable etc)
+* Wrote brief help section on genHTML output
+* Fixed some minor genotyping bugs with rare, atypical structures
+* Fixed un-prompted read count subsampling in samples with atypical allele structures
+* Fixed MSAViewer alignment showing certain reads off-position by 1 base pair
+* Improved genHTML handling of failed samples (more information as to why, within detailed view)
+* Removed choice between SNP calling algorithms; freebayes used exclusively
+
+Version 0.321
+-------------
+
+* Fixed some syntax errors with array handling due to a dependency update changing interactions
+* Added --simple flag for command line interface, providing a more literally-interpretable genotyping outputs
+* Fixed minor demultiplexing error (path finding)
+* Added entire HTML5 based output, extracting information from ScaleHD instance objects
+
+Version 0.320
+-------------
+
+* Updated dependencies to latest versions (see :ref:`_sect_reqpack`)
+* Minor tweaks to (syntax) interaction with updated versions of dependencies
+* Fixed Matplotlib font missing warning spam on certain systems
+* Fixed SKLearn ConvergenceWarnings spam
+* Fixed Samtools memory block merging spam
+
+Version 0.318
+-------------
+
+* Minor distribution scraping errors for homozygous haplotypes
+* Logging bugfix with file going missing because i'm bad at my job
+* SNP Calling masking for ScaleHD-ALSPAC
+* Framework for simplified 95%C.I. output (feature not implemented in this version; undergoing testing)
+
 Version 0.317
 -------------
 
@@ -10,7 +59,7 @@ Version 0.317
 * Minor tweaks for Windows 10 Linux Subsystem support
 * Refactoring config backend interpreter to make it less dumpster-fire-awful
 
-Verson 0.316
+Version 0.316
 ------------
 
 * Added some minor documentation for SNP Calling (_sect_genotyping)

@@ -13,7 +13,7 @@ setup(
     name='ScaleHDALSPAC',
 
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.318',
+    version='0.324',
 
     description='Automated DNA micro-satellite genotyping.',
     long_description=long_description,
@@ -47,7 +47,6 @@ setup(
 
 		# Specific version of the python interpreter that are supported
 		# by this package. Python 3 not support at this time.
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
 
 		## And so on
@@ -87,17 +86,36 @@ setup(
 					  'reportlab',
 					  'generatr',
 					  'batchadapt',
-					  'pyvcf'
+					  'pyvcf',
+					  'fadapa'
 					  ],
 
     # These are the data files to be included in the package
 	# For GenoCall, this will be the data-sets used for machine-learning
 	# training, and generating predictive models for each 'data state'
-    package_data={'ScaleHDALSPAC': ['train/long_descr.rst',
+    package_data={'ScaleHD': ['train/long_descr.rst',
                               'train/polyglutamine.csv',
                               'train/likelihood_matrix.csv',
                               'train/raw_matrix.csv',
-							  'config/config.dtd']},
+							  'config/config.dtd',
+							  'genHTML/chartBoxPlot.js',
+							  'genHTML/chartBase.js',
+							  'genHTML/chartZoom.js',
+							  'genHTML/gridism.css',
+							  'genHTML/jquery.js',
+							  'genHTML/msa.js',
+							  'genHTML/scalehd.css',
+							  'genHTML/scalehd.js',
+							  'genHTML/tablefilter.js',
+							  'genHTML/templates/alleletable.html',
+							  'genHTML/templates/base.html',
+							  'genHTML/templates/fastqc.html',
+							  'genHTML/templates/list.html',
+							  'genHTML/templates/seqALN.html',
+							  'genHTML/templates/seqGTYPE.html',
+							  'genHTML/templates/seqqc.html',
+							  'genHTML/templates/sequencedata.html',
+							  'genHTML/templates/trim.html']},
 	include_package_data=True,
 
 	# Executable scripts require an entry point to allow cython to generate

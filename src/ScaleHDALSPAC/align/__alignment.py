@@ -1,5 +1,5 @@
 #/usr/bin/python
-__version__ = 0.318
+__version__ = 0.324
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -59,7 +59,7 @@ def extract_repeat_distributions(sample_root, alignment_outdir, alignment_outfil
 	## Scrapes repeat distribution from alignment
 	sorted_assembly = '{}{}'.format(alignment_outdir, '/assembly_sorted.bam')
 	view_subprocess = subprocess.Popen(['samtools', 'view', '-bS', '-@', str(THREADS), alignment_outfile], stdout=subprocess.PIPE)
-	sort_subprocess = subprocess.Popen(['samtools', 'sort', '-@', str(THREADS), '-', '-o', sorted_assembly], stdin=view_subprocess.stdout)
+	sort_subprocess = subprocess.Popen(['samtools', 'sort', '-@', str(THREADS), '-', '-o', sorted_assembly], stdin=view_subprocess.stdout, stderr=subprocess.PIPE)
 	view_subprocess.wait(); sort_subprocess.wait()
 
 	##
@@ -115,6 +115,7 @@ class SeqAlign:
 		self.enshrine_flag = sequencepair_object.get_enshrineflag()
 		self.subsample_flag = 0.0
 		self.broad_flag = sequencepair_object.get_broadflag()
+		self.align_report = []
 		self.alignment_workflow()
 
 	def subsample_input(self, target_file, suffix):
@@ -152,7 +153,7 @@ class SeqAlign:
 			elif 50000 > awk_output > 25000: self.subsample_flag = 0.75
 
 		if not self.broad_flag:
-			if awk_output >= 2500:
+			if awk_output >= 25000:
 				forward_reads = self.subsample_input(self.sequencepair_object.get_fwreads(), 'R1')
 				reverse_reads = self.subsample_input(self.sequencepair_object.get_rvreads(), 'R2')
 			else:
@@ -169,8 +170,9 @@ class SeqAlign:
 		## Align the two FastQ files in the pair
 		if self.individual_allele is not None: typical_flag = 'atypical'
 		else: typical_flag = 'typical'
-		forward_distribution, forward_assembly, fwmapped_pcnt, fwmapped_count, fwremoved_count = self.execute_alignment(forward_index,forward_reads,'Aligning forward reads..','R1',typical_flag)
-		reverse_distribution, reverse_assembly, rvmapped_pcnt, rvmapped_count, rvremoved_count = self.execute_alignment(reverse_index,reverse_reads,'Aligning reverse reads..','R2',typical_flag)
+		forward_distribution, forward_report, forward_assembly, fwmapped_pcnt, fwmapped_count, fwremoved_count = self.execute_alignment(forward_index,forward_reads,'Aligning forward reads..','R1',typical_flag)
+		reverse_distribution, reverse_report, reverse_assembly, rvmapped_pcnt, rvmapped_count, rvremoved_count = self.execute_alignment(reverse_index,reverse_reads,'Aligning reverse reads..','R2',typical_flag)
+		self.align_report.append(forward_report); self.align_report.append(reverse_report)
 
 		##
 		## If the user requested to group alignment output.. do so..
@@ -300,7 +302,11 @@ class SeqAlign:
 												stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			flagstat_output = flagstat_process.communicate(); flagstat_process.wait()
 
-			## determine mapped pcnt
+			## Write output to file..
+			## Determine % mapped for this assembly
+			with open(flagstat_path, 'w') as outfi:
+				outfi.write(flagstat_output[0])
+				outfi.close()
 			mapped_pcnt = [x for x in (flagstat_output[0].split('\n')) if '%' in x]
 			aln_pcnt = str(mapped_pcnt[0]).split('(')[1].rsplit('%')[0]
 			aln_count = mapped_pcnt[0].split(' +')[0]
@@ -317,7 +323,7 @@ class SeqAlign:
 			aln_count = post_purge[0]
 			removed_reads = int(pre_purge[0]) - int(post_purge[0])
 
-		return csv_path, sorted_assembly, aln_pcnt, aln_count, removed_reads
+		return csv_path, '', sorted_assembly, aln_pcnt, aln_count, removed_reads
 
 class ReferenceIndex:
 

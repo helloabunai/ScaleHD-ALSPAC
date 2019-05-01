@@ -1,10 +1,11 @@
 #/usr/bin/python
-__version__ = 0.318
+__version__ = 0.324
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 import os
 import vcf
 import subprocess
+import numpy as np
 import logging as log
 from ..__backend import Colour as clr
 
@@ -20,7 +21,6 @@ class DetermineMutations:
 		# picard CreateSequenceDictioanry REFERENCE=<reference> OUTPUT=<reference.dict>
 		# samtools index <assembly> <assembly.bam.bai>
 		# freebayes -f ref.fa -C snp_threshold assembly.bam > variants.vcf
-		# gatk -R 4k-HD-INTER.fa -T HaplotypeCaller -I assembly_sorted.bam -o variants.vcf
 
 	def generate_variant_data(self):
 
@@ -28,7 +28,7 @@ class DetermineMutations:
 		Simple workflow function which calls various third party tools in order to call SNPs within the alignment
 		which we created earlier on within the pipeline.
 		:return: n/a
-		"""	
+		"""
 		for allele in [self.sequencepair_object.get_primaryallele(), self.sequencepair_object.get_secondaryallele()]:
 
 			## get data
@@ -48,7 +48,7 @@ class DetermineMutations:
 					## picard dict creation
 					picard_string = 'picard {} {}'.format(fw_idx, dict_path)
 					picard_subprocess = subprocess.Popen([picard_string], shell=True,
-					 stdout=subprocess.PIPE, stderr=subprocess.PIPE) 
+					 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 					picard_log = picard_subprocess.communicate(); picard_subprocess.wait()
 					if 'ERROR' in picard_log:
 						log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Failure in PICARD. Check sample output log.'))
@@ -62,6 +62,7 @@ class DetermineMutations:
 			if allele.get_allelestatus() == 'Atypical':
 				indiv_atypical_reference_name = fw_idx.split('/')[-2:-1][0]
 				dict_path = '/'.join(fw_idx.split('/')[:-1])+'/'+indiv_atypical_reference_name+'.dict'
+				## picard dict creation
 				picard_string = 'picard {} {}'.format(fw_idx, dict_path)
 				picard_subprocess = subprocess.Popen([picard_string], shell=True,
 					stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -72,17 +73,17 @@ class DetermineMutations:
 					with open(logpath, 'w') as logfi:
 						logfi.write(picard_log[0])
 						logfi.write(picard_log[1])
-			
+
 			## freebayes haplotype caller
-			observation_threshold = (allele.get_totalreads()/100) * int(self.sequencepair_object.get_snpobservationvalue())
+			observation_threshold = self.sequencepair_object.get_snpobservationvalue()
 			freebayes_output = os.path.join(predpath, '{}_FreeBayesVariantCall.vcf'.format(header))
-			freebayes_string = 'freebayes -f {} --legacy-gls -B 4000 -C {} {}'.format(
+			freebayes_string = 'freebayes -f {} -B 4000 -C {} {}'.format(
 				fw_idx, observation_threshold, fw_assembly)
 			freebayes_outfi = open(freebayes_output, 'w')
 			freebayes_subprocess = subprocess.Popen([freebayes_string], shell=True,
 													stdout=freebayes_outfi, stderr=subprocess.PIPE)
 			freebayes_log = freebayes_subprocess.communicate(); freebayes_subprocess.wait()
-			if 'error' in freebayes_log:
+			if 'ERROR' in freebayes_log:
 				log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Failure in FreeBayes. Check sample output log.'))
 				logpath = os.path.join(predpath, 'FreeBayesErrorLog.txt')
 				with open(logpath, 'w') as logfi:
@@ -90,20 +91,6 @@ class DetermineMutations:
 					logfi.write(freebayes_log[1])
 			allele.set_freebayes_file(freebayes_output)
 			freebayes_outfi.close()
-
-			## gatk haplotype caller
-			gatk_output = os.path.join(predpath, '{}_GATKVariantCall.vcf'.format(header))
-			gatk_string = 'gatk HaplotypeCaller -R {} -I {} -O {}'.format(fw_idx, fw_assembly, gatk_output)
-			gatk_subprocess = subprocess.Popen([gatk_string], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			gatk_log = gatk_subprocess.communicate(); gatk_subprocess.wait()
-			if 'ERROR' in gatk_log:
-				log.error('{}{}{}{}'.format(clr.red, 'shda__ ', clr.end, 'Failure in GATK. Check sample output log.'))
-				logpath = os.path.join(predpath, 'GATKErrorLog.txt')
-				with open(logpath, 'w') as logfi:
-					logfi.write(gatk_log[0])
-					logfi.write(gatk_log[1])
-
-			allele.set_gatk_file(gatk_output)
 
 	def scrape_relevance(self):
 		"""
@@ -134,37 +121,26 @@ class DetermineMutations:
 				else:
 					freebayes_unmatched.append(record)
 
-			## Get variants found by GATK
-			target = ''; gatk_call = 'N/A'; gatk_score = 0
-			gatk_matched = []; gatk_unmatched = []
-			if allele.get_allelestatus() == 'Typical': target = allele.get_reflabel()
-			if allele.get_allelestatus() == 'Atypical': target = allele.get_reflabel().split('CAG')[0]
-			gatk_reader = vcf.Reader(open(allele.get_gatk_file(), 'r'))
-			for record in gatk_reader:
-				origin = ''
-				if allele.get_allelestatus() == 'Typical': origin = record.CHROM
-				if allele.get_allelestatus() == 'Atypical': origin = record.CHROM.split('CAG')[0][:-1]
-				if origin == target:
-					gatk_matched.append(record)
-				else:
-					gatk_unmatched.append(record)
-
 			## sort and remove records which are < user specified cutoff
 			## todo again generalise this code you absolute throbber
 			freebayes_sorted = sorted(freebayes_matched, key=lambda a:a.QUAL, reverse=True)
-
 			freebayes_sorted = [x for x in freebayes_sorted if x.QUAL > variant_cutoff]
-			gatk_sorted = sorted(gatk_matched, key=lambda b:b.QUAL, reverse=True)
-			gatk_sorted = [x for x in gatk_sorted if x.QUAL > variant_cutoff]
+
+			##
+			## PCR amplification results in fake mutations from the primer sequence
+			## filter out anything that is outside of our region of interest i.e. smallest & largest (positions)
+			positions = [x.POS for x in freebayes_sorted]
+			if not len(freebayes_sorted) == 0:
+				smallest = min([x for x in positions]); largest = max([x for x in positions])
+				freebayes_sorted = [x for x in freebayes_sorted if not np.isclose([x.POS], [smallest], atol=5)[0]]
+				freebayes_sorted = [x for x in freebayes_sorted if not np.isclose([x.POS], [largest], atol=5)[0]]
 
 			## Determine what to set values of call/score to, then apply to allele object
 			## will be written to InstanceReport.csv from whatever algo the user wanted
-			## user chose freebayes
-			if self.sequencepair_object.get_snpalgorithm() == 'freebayes':
-				if not len(freebayes_sorted) == 0:
-					## we have snps!
-					target = freebayes_sorted[0]
-
+			if not len(freebayes_sorted) == 0:
+				## we have snps!
+				freebayes_str = ''; mutation_calls = ''; mutation_scores = ''
+				for mutation in freebayes_sorted:
 					## hacky alspac position masking
 					cag_size = allele.get_fodcag()
 					flank = allele.get_fiveprime()
@@ -174,42 +150,25 @@ class DetermineMutations:
 						position = 'MASK'
 					else:
 						position = target.POS
-					freebayes_call = '{}->{}@{}'.format(target.REF, target.ALT[0], position)
-					freebayes_score = target.QUAL
-					allele.set_variantcall(freebayes_call)
-					allele.set_variantscore(freebayes_score)
-				else:
-					## we do not
-					allele.set_variantcall(freebayes_call)
-					allele.set_variantscore(freebayes_score)
+					mutation_calls += '{}->{}@{}   '.format(mutation.REF, mutation.ALT[0], position)
+					mutation_scores += '{}   '.format(mutation.QUAL)
+				allele.set_variantcall(mutation_calls)
+				allele.set_variantscore(freebayes_score)
+			else:
+				## we do not
+				allele.set_variantcall(freebayes_call)
+				allele.set_variantscore(freebayes_score)
 
-			## user chose gatk
-			if self.sequencepair_object.get_snpalgorithm() == 'gatk':
-				if not len(gatk_sorted) == 0:
-					## we have snps!
-					target = gatk_sorted[0]
-
-					## hacky alspac position masking
-					cag_size = allele.get_fodcag()
-					flank = allele.get_fiveprime()
-					positional_cutoff = 3 * 31 + len(flank)
-					position = 0
-					if len(flank) + int(cag_size)*3 >= positional_cutoff:
-						position = 'MASK'
-					else:
-						position = target.POS
-
-					gatk_call = '{}->{}@{}'.format(target.REF, target.ALT, position)
-					gatk_score = target.QUAL
-					allele.set_variantcall(gatk_call)
-					allele.set_variantscore(gatk_score)
-				else:
-					## we do not
-					allele.set_variantcall(gatk_call)
-					allele.set_variantscore(gatk_score)
+			## Write unmatched to file
+			target_dir = os.path.join(self.sequencepair_object.get_predictpath(), 'IrrelevantVariants.txt')
+			with open(target_dir, 'w') as outfi:
+				for record in freebayes_unmatched:
+					record_str = 'Freebayes: {} = {} -> {} @ {}. Qual: {}'.format(record.CHROM, record.REF,
+																		record.ALT, record.POS, record.QUAL)
+					outfi.write(record_str+'\n')
+				outfi.write('\n')
 
 	def set_report(self, input_report):
 		self.snp_report = input_report
 	def get_report(self):
 		return self.snp_report
-

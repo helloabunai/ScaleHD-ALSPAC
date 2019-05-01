@@ -1,9 +1,9 @@
 include MANIFEST.in
 include README.md
 include setup.cfg
-include ScaleHD-ALSPAC/train/likelihood_matrix.csv
-include ScaleHD-ALSPAC/train/long_descr.rst
-include ScaleHD-ALSPAC/train/polyglutamine.csv
-include ScaleHD-ALSPAC/train/raw_matrix.csv
-include ScaleHD-ALSPAC/config/config.dtd
+include ScaleHD/train/likelihood_matrix.csv
+include ScaleHD/train/long_descr.rst
+include ScaleHD/train/polyglutamine.csv
+include ScaleHD/train/raw_matrix.csv
+include ScaleHD/config/config.dtd
 
