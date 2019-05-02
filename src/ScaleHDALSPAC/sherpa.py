@@ -585,7 +585,7 @@ class ScaleHDALSPAC:
 
 		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'Purging non-HTML output...'))
 
-		retain = ['html', 'InstanceReport.csv', 'UtilisedConfiguration.xml', 'ScaleHD-ALSPACLog.txt']
+		retain = ['html', 'InstanceReport.csv', 'SimplifiedReport.csv', 'InstanceGraphs.pdf', 'UtilisedConfiguration.xml', 'ScaleHD-ALSPACLog.txt']
 		for path, subdirs, files in os.walk(self.instance_rundir):
 			for name in files:
 				if not os.path.join(path, name).endswith(tuple(retain)):
