@@ -503,7 +503,7 @@ $('.sequence_sample_link').click(function(event){
 
 	// Update header to be "SAMPLE | LANDING_STRING"
 	rightCandidate = "\
-	<p class=\"alignleft\">" + identifier + " | ScaleHD results" + "</p>\n\
+	<p class=\"alignleft\">" + identifier + " | ScaleHD-ALSPAC results" + "</p>\n\
 	<p class=\"alignright\"><a class=\"contact\" href=\"mailto:alastair.maxwell@glasgow.ac.uk\"><strong>@</strong></a>  |  <a class=\"help\" href=\"#\" data-title=\"Help\"><strong>?</strong></a></p>\n\
 	<div style=\"clear: both;\"></div>\n\
 	"
@@ -538,7 +538,7 @@ $('.sequence_sample_link_table').click(function(event){
 
 	// Update header to be "SAMPLE | LANDING_STRING"
 	rightCandidate = "\
-	<p class=\"alignleft\">" + identifier + " | ScaleHD results" + "</p>\n\
+	<p class=\"alignleft\">" + identifier + " | ScaleHD-ALSPAC results" + "</p>\n\
 	<p class=\"alignright\"><a class=\"contact\" href=\"mailto:alastair.maxwell@glasgow.ac.uk\"><strong>@</strong></a>  |  <a class=\"help\" href=\"#\" data-title=\"Help\"><strong>?</strong></a></p>\n\
 	<div style=\"clear: both;\"></div>\n\
 	"
@@ -558,7 +558,7 @@ $('.home').click(function(event){
 	barGraph(instanceLabel, 'CCGSummaryChart');
 
 	rightCandidate = "\
-	<p class=\"alignleft\">ScaleHD - Automated Huntington Disease genotyping</p>\n\
+	<p class=\"alignleft\">ScaleHD-ALSPAC - Automated Huntington Disease genotyping</p>\n\
 	<p class=\"alignright\"><a class=\"contact\" href=\"mailto:alastair.maxwell@glasgow.ac.uk\"><strong>@</strong></a>  |  <a class=\"help\" href=\"#\" data-title=\"Help\"><strong>?</strong></a></p>\n\
 	<div style=\"clear: both;\"></div>\n\
 	"
@@ -574,7 +574,7 @@ $(document).on('click', '.help', function(e){
 	clearSampleColour('None')
 
 	rightCandidate = "\
-	<p class=\"alignleft\">ScaleHD - Help!</p>\n\
+	<p class=\"alignleft\">ScaleHD-ALSPAC - Help!</p>\n\
 	<p class=\"alignright\"><a class=\"contact\" href=\"mailto:alastair.maxwell@glasgow.ac.uk\"><strong>@</strong></a>  |  <a class=\"help\" href=\"#\" data-title=\"Help\"><strong>?</strong></a></p>\n\
 	<div style=\"clear: both;\"></div>\n\
 	"

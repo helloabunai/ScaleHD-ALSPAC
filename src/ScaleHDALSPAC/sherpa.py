@@ -9,11 +9,13 @@ __author__ = 'alastair.maxwell@glasgow.ac.uk'
 import os
 import sys
 import gc
+import glob
 import PyPDF2
 import argparse
 import pkg_resources
 import logging as log
 import datetime as dt
+from shutil import rmtree
 from shutil import copyfile
 from reportlab.pdfgen import canvas
 from multiprocessing import cpu_count
@@ -581,7 +583,17 @@ class ScaleHDALSPAC:
 
 	def one_night_a_year(self):
 
-		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'Purging non-HTML output is not implemented yet.'))
+		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'Purging non-HTML output...'))
+
+		retain = ['html', 'InstanceReport.csv', 'UtilisedConfiguration.xml', 'ScaleHD-ALSPACLog.txt']
+		for path, subdirs, files in os.walk(self.instance_rundir):
+			for name in files:
+				if not os.path.join(path, name).endswith(tuple(retain)):
+					os.remove(os.path.join(path, name))
+			for subdir in subdirs:
+				rmtree(os.path.join(path, subdir))
+
+		log.info('{}{}{}{}'.format(clr.green, 'shda__ ', clr.end, 'Done!'))
 
 def main():
 	try:
