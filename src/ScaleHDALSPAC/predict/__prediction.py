@@ -1775,6 +1775,12 @@ class AlleleGenotyping:
 				else:
 					allele.set_alleleconfinterval('{}-{}'.format(lower_ci, upper_ci))
 
+			## ALSPAC lol i'm bad
+			lower_temp, upper_temp = allele.get_alleleconfinterval().split('-')
+			if lower_temp >= 31: lower_temp = "31+"
+			if upper_temp >= 31: upper_temp = "31+"
+			allele.set_alleleconfinterval('{}-{}'.format(lower_temp, upper_temp))
+
 			## haha bad lazy programming wow
 			if allele.get_alleleconfidence() < 50:
 				garbage_code = allele.get_alleleconfinterval().split('-')
