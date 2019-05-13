@@ -67,7 +67,7 @@ class ScaleHDALSPAC:
 
 		##
 		## Argument parser from CLI
-		self.parser = argparse.ArgumentParser(prog='scalehd_alspac', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
+		self.parser = argparse.ArgumentParser(prog='scalehda', description='ScaleHD-ALSPAC: Automated DNA micro-satellite genotyping.')
 		self.parser.add_argument('-v', '--verbose', help='Verbose output mode. Setting this flag enables verbose output. Default: off.', action='store_true')
 		self.parser.add_argument('-c', '--config', help='Pipeline config. Specify a directory to your ArgumentConfig.xml file.', nargs=1, required=True)
 		self.parser.add_argument('-t', '--threads', help='Thread utilisation. Typically only alters third party alignment performance. Default: system max.', type=int, choices=xrange(1, THREADS+1), default=THREADS)
@@ -358,14 +358,14 @@ class ScaleHDALSPAC:
 				#############################
 				## Stage six!! SNP calling ##
 				#############################
-				try:
-					self.snp_calling(current_seqpair)
-				except Exception, e:
-					current_seqpair.set_exceptionraised('SNPCalling'); siivota(ARGS)
-					self.append_report(current_seqpair)
-					self.instance_objects.append(current_seqpair)
-					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'SNP calling failure on ',seqpair_lbl, str(e)))
-					continue
+				#try:
+				self.snp_calling(current_seqpair)
+				#except Exception, e:
+				#	current_seqpair.set_exceptionraised('SNPCalling'); siivota(ARGS)
+				#	self.append_report(current_seqpair)
+				#	self.instance_objects.append(current_seqpair)
+				#	log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'SNP calling failure on ',seqpair_lbl, str(e)))
+				#	continue
 				#############################
 				## Finished! File output.. ##
 				#############################

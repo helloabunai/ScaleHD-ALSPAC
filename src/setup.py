@@ -91,9 +91,9 @@ setup(
 					  ],
 
     # These are the data files to be included in the package
-	# For GenoCall, this will be the data-sets used for machine-learning
+	# For scalehd, this will be the data-sets used for machine-learning
 	# training, and generating predictive models for each 'data state'
-    package_data={'ScaleHD': ['train/long_descr.rst',
+    package_data={'ScaleHDALSPAC': ['train/long_descr.rst',
                               'train/polyglutamine.csv',
                               'train/likelihood_matrix.csv',
                               'train/raw_matrix.csv',
@@ -122,6 +122,6 @@ setup(
 	# executables for the respective target platform. This entry point is akin
 	# to launching the script in bash: if __name__ == '__main__' etc..
     entry_points={
-        'console_scripts': ['scalehd_alspac=ScaleHDALSPAC.sherpa:main',],
+        'console_scripts': ['scalehda=ScaleHDALSPAC.sherpa:main',],
     },
 )

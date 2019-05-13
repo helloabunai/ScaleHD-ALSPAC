@@ -149,13 +149,13 @@ class DetermineMutations:
 					if len(flank) + int(cag_size)*3 >= positional_cutoff:
 						position = 'MASK'
 					else:
-						position = target.POS
+						position = mutation.POS
 					mutation_calls += '{}->{}@{}   '.format(mutation.REF, mutation.ALT[0], position)
 					mutation_scores += '{}   '.format(mutation.QUAL)
 				allele.set_variantcall(mutation_calls)
 				allele.set_variantscore(freebayes_score)
-			else:
-				## we do not
+			else
+:				## we do not
 				allele.set_variantcall(freebayes_call)
 				allele.set_variantscore(freebayes_score)
 
