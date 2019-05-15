@@ -154,8 +154,8 @@ class DetermineMutations:
 					mutation_scores += '{}   '.format(mutation.QUAL)
 				allele.set_variantcall(mutation_calls)
 				allele.set_variantscore(freebayes_score)
-			else
-:				## we do not
+			else:
+				## we do not
 				allele.set_variantcall(freebayes_call)
 				allele.set_variantscore(freebayes_score)
 
