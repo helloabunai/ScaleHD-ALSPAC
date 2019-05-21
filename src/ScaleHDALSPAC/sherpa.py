@@ -358,14 +358,14 @@ class ScaleHDALSPAC:
 				#############################
 				## Stage six!! SNP calling ##
 				#############################
-				#try:
-				self.snp_calling(current_seqpair)
-				#except Exception, e:
-				#	current_seqpair.set_exceptionraised('SNPCalling'); siivota(ARGS)
-				#	self.append_report(current_seqpair)
-				#	self.instance_objects.append(current_seqpair)
-				#	log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'SNP calling failure on ',seqpair_lbl, str(e)))
-				#	continue
+				try:
+					self.snp_calling(current_seqpair)
+				except Exception, e:
+					current_seqpair.set_exceptionraised('SNPCalling'); siivota(ARGS)
+					self.append_report(current_seqpair)
+					self.instance_objects.append(current_seqpair)
+					log.info('{}{}{}{}{}: {}\n'.format(clr.red, 'shda__ ', clr.end, 'SNP calling failure on ',seqpair_lbl, str(e)))
+					continue
 				#############################
 				## Finished! File output.. ##
 				#############################
