@@ -1,7 +1,7 @@
 from __future__ import division
 
 #/usr/bin/python
-__version__ = 0.324
+__version__ = 0.324.1
 __author__ = 'alastair.maxwell@glasgow.ac.uk'
 
 ##
@@ -582,6 +582,7 @@ class AlleleGenotyping:
 				self.zygosity_state = self.expected_zygstate = local_zygstate
 
 		self.sequencepair_object.set_ccgzygstate(self.expected_zygstate)
+		self.zygosity_state = local_zygstate
 		if not self.zygosity_state == 'HOMO*' or not self.zygosity_state == 'HOMO+':
 			if not local_zygstate == self.expected_zygstate:
 				if abs(ccg_sum[0][0]-ccg_sum[1][0]) == 1:

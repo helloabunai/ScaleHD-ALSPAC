@@ -1,5 +1,5 @@
 ScaleHD-ALSPAC: Automated Huntington Disease genotyping with end-to-end allele masking
-=========================================================
+======================================================================================
 
 !! You probably don't want to use this version of ScaleHD, unless you know what you're doing. Use the vanilla version, instead. !!
 
